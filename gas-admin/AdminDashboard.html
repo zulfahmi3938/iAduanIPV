@@ -1,0 +1,455 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f6fa;
+      color: #243447;
+    }
+
+    header {
+      background: #033662;
+      color: white;
+      padding: 22px 16px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 7px;
+      font-size: 25px;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 15px 40px;
+    }
+
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      color: #033662;
+      font-size: 21px;
+      margin: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .stat, .card {
+      background: white;
+      border-radius: 13px;
+      padding: 18px;
+      box-shadow: 0 2px 10px #00000009;
+    }
+
+    .stat strong {
+      display: block;
+      color: #033662;
+      font-size: 29px;
+      margin-bottom: 6px;
+    }
+
+    .stat span {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    select, button {
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      font-size: 14px;
+    }
+
+    button {
+      background: #033662;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    .card {
+      margin-bottom: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .ref {
+      font-weight: bold;
+      color: #033662;
+    }
+
+    .status {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 6px 10px;
+      background: #e7f1fb;
+      color: #18578b;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .description {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .detail {
+      font-size: 13px;
+      line-height: 1.8;
+      color: #475569;
+    }
+
+    .notice {
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .stats { gap: 7px; }
+
+      .stat { padding: 12px; }
+
+      .stat strong { font-size: 24px; }
+
+      .heading, .toolbar {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>iADUAN IPV</h1>
+    <p>Dashboard Urus Setia</p>
+    <p>Institut Pengurusan Veterinar</p>
+  </header>
+
+  <main>
+    <div class="heading">
+      <h2>Pengurusan Aduan</h2>
+      <button id="refreshBtn"
+              onclick="loadComplaints()">
+        Muat Semula
+      </button>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <strong id="total">-</strong>
+        <span>Jumlah Aduan</span>
+      </div>
+
+      <div class="stat">
+        <strong id="newCount">-</strong>
+        <span>Baharu</span>
+      </div>
+
+      <div class="stat">
+        <strong id="doneCount">-</strong>
+        <span>Selesai</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <h2>Senarai Aduan</h2>
+
+      <select id="statusFilter"
+              onchange="renderComplaints()"
+              aria-label="Tapis status aduan">
+        <option value="ALL">Semua Status</option>
+        <option value="BAHARU">Baharu</option>
+        <option value="DALAM_SEMAKAN">Dalam Semakan</option>
+        <option value="DALAM_TINDAKAN">Dalam Tindakan</option>
+        <option value="SELESAI">Selesai</option>
+        <option value="DITOLAK">Ditolak</option>
+      </select>
+    </div>
+
+    <div id="message"
+         role="status"
+         class="notice">
+      Memuatkan aduan...
+    </div>
+
+    <div id="complaintList"></div>
+  </main>
+
+  <script>
+    let allComplaints = [];
+
+    const labels = {
+      BAHARU: 'Baharu',
+      DALAM_SEMAKAN: 'Dalam Semakan',
+      DALAM_TINDAKAN: 'Dalam Tindakan',
+      SELESAI: 'Selesai',
+      DITOLAK: 'Ditolak'
+    };
+
+    function addText(parent, tag, text, className) {
+      const element = document.createElement(tag);
+      element.textContent = String(text || '');
+
+      if (className) {
+        element.className = className;
+      }
+
+      parent.appendChild(element);
+      return element;
+    }
+
+    function loadComplaints() {
+      const btn = document.getElementById('refreshBtn');
+      const message = document.getElementById('message');
+
+      btn.disabled = true;
+      message.hidden = false;
+      message.textContent = 'Memuatkan aduan...';
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          btn.disabled = false;
+
+          allComplaints = data.complaints || [];
+
+          document.getElementById('total')
+            .textContent = data.total;
+
+          document.getElementById('newCount')
+            .textContent = data.counts.BAHARU || 0;
+
+          document.getElementById('doneCount')
+            .textContent = data.counts.SELESAI || 0;
+
+          renderComplaints();
+        })
+        .withFailureHandler(function(error) {
+          btn.disabled = false;
+          message.hidden = false;
+          message.textContent =
+            'Gagal memuatkan aduan: ' +
+            (error.message || 'Ralat sistem');
+        })
+        .getAdminComplaints();
+    }
+
+/**
+ * Memuatkan gambar aduan daripada GAS.
+ * Hanya backend admin dibenarkan membaca fail.
+ */
+function loadComplaintImages(complaintId, card, button) {
+  // Jika gambar sudah dipaparkan, sembunyikan.
+  const existing = card.querySelector('.image-gallery');
+
+  if (existing) {
+    existing.remove();
+    button.textContent = 'Lihat Gambar';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Memuatkan gambar...';
+
+  google.script.run
+    .withSuccessHandler(function(images) {
+      button.disabled = false;
+
+      const gallery = document.createElement('div');
+      gallery.className = 'image-gallery';
+      gallery.style.marginTop = '14px';
+
+      if (!images.length) {
+        const notice = document.createElement('p');
+        notice.textContent = 'Tiada gambar ditemui.';
+        gallery.appendChild(notice);
+      }
+
+      images.forEach(function(image) {
+        const img = document.createElement('img');
+
+        img.src = image.dataUrl;
+        img.alt = 'Gambar kerosakan ' + image.index;
+        img.style.width = '100%';
+        img.style.maxWidth = '480px';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.marginBottom = '12px';
+        img.style.borderRadius = '10px';
+
+        gallery.appendChild(img);
+      });
+
+      card.appendChild(gallery);
+      button.textContent = 'Sembunyikan Gambar';
+    })
+    .withFailureHandler(function(error) {
+      button.disabled = false;
+      button.textContent = 'Lihat Gambar';
+
+      alert(
+        'Gagal memuatkan gambar: ' +
+        (error.message || 'Ralat sistem')
+      );
+    })
+    .getAdminComplaintImages(complaintId);
+}
+
+    function renderComplaints() {
+      const filter =
+        document.getElementById('statusFilter').value;
+
+      const list =
+        document.getElementById('complaintList');
+
+      const message =
+        document.getElementById('message');
+
+      list.replaceChildren();
+
+      const filtered = allComplaints.filter(
+        function(item) {
+          return filter === 'ALL' ||
+            item.status === filter;
+        }
+      );
+
+      if (!filtered.length) {
+        message.hidden = false;
+        message.textContent =
+          'Tiada aduan untuk status ini.';
+        return;
+      }
+
+      message.hidden = true;
+
+      filtered.forEach(function(item) {
+        const card =
+          document.createElement('div');
+
+        card.className = 'card';
+
+        const top =
+          document.createElement('div');
+
+        top.className = 'topline';
+
+        addText(top, 'span', item.id, 'ref');
+
+        addText(
+          top,
+          'span',
+          labels[item.status] || item.status,
+          'status'
+        );
+
+        card.appendChild(top);
+
+        addText(
+          card,
+          'div',
+          item.description,
+          'description'
+        );
+
+        const detail =
+          document.createElement('div');
+
+        detail.className = 'detail';
+
+        [
+          'Pelapor: ' + item.reporter,
+          'Unit: ' + item.unit,
+          'Lokasi: ' + item.location,
+          'Tarikh: ' + item.date,
+          'Gambar: ' + item.imageCount
+        ].forEach(function(value) {
+          addText(detail, 'div', value);
+        });
+
+        
+        card.appendChild(detail);
+
+        // Paparkan butang hanya jika ada gambar.
+        if (item.imageCount > 0) {
+          const imageBtn =
+            document.createElement('button');
+
+          imageBtn.type = 'button';
+          imageBtn.textContent =
+            'Lihat Gambar (' + item.imageCount + ')';
+
+          imageBtn.style.marginTop = '14px';
+
+          imageBtn.addEventListener(
+            'click',
+            function() {
+              loadComplaintImages(
+                item.id,
+                card,
+                imageBtn
+              );
+            }
+          );
+
+          card.appendChild(imageBtn);
+        }
+
+        list.appendChild(card);
+
+      });
+    }
+
+    loadComplaints();
+  </script>
+</body>
+</html>

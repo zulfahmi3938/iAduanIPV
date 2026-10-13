@@ -2,7 +2,17 @@
 
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
-## Kedudukan terkini — Fasa 3.1
+## Status terkini — checkpoint Admin Fasa 4.2
+
+Pada 13 Oktober 2026, empat fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.4.2.zip` dan disimpan secara berasingan dalam `gas-admin/`. Folder `gas/` kekal sebagai checkpoint staf Fasa 3.1 tanpa perubahan.
+
+Snapshot Admin menyediakan dashboard baca sahaja, senarai dan jumlah aduan, tapisan status, muat semula, serta paparan gambar melalui backend. `requireAdmin_()` menyemak emel pengguna aktif pada pelayan untuk halaman dashboard, senarai aduan dan gambar. Manifest Admin ialah `USER_ACCESSING` / `MYSELF`; konfigurasi deployment sebenar tidak diperiksa.
+
+Semakan sesi ini meliputi empat fail, sintaks GS/JavaScript, JSON manifest dan pemeriksaan secrets. Tiada fungsi GAS atau ujian sambungan data dijalankan. Nilai database ID dan emel admin disamarkan dalam salinan GitHub sahaja; baca [nota pemulihan](docs/CHECKPOINT_ADMIN_PHASE_4_2.md) sebelum menggunakan snapshot.
+
+Kemas kini status, penetapan tindakan dan penulisan sejarah belum tersedia dalam empat fail Admin ini. Langkah pembangunan seterusnya ialah menentukan serta menguji aliran kemas kini status dan log tindakan apabila diminta. Tugas semasa hanya menyimpan checkpoint.
+
+## Checkpoint terdahulu — Fasa 3.1 (gas/)
 
 Snapshot enam fail sebenar diterima melalui ZIP pemilik pada 13 Oktober 2026. Semakan statik mengenal pasti borang, dropdown staf, simpanan aduan, ID berurutan, validasi gambar dan penyimpanan Drive. Pemilik melaporkan ujian berjaya termasuk 13 staf dan rujukan terakhir `IPV-2026-0002`; sesi ini tidak menjalankan semula fungsi GAS.
 
@@ -13,7 +23,7 @@ Snapshot enam fail sebenar diterima melalui ZIP pemilik pada 13 Oktober 2026. Se
 | Gambar | Maksimum 3; 5 MB setiap fail; JPEG/PNG/WebP |
 | Database DEV | ADUAN, TINDAKAN, PENGGUNA, KONFIGURASI |
 | Staf | Dropdown nama tanpa login; bukan bukti identiti |
-| Urus setia | Helper whitelist tersedia; login/dashboard belum tersedia |
+| Urus setia | Snapshot staf hanya menyediakan helper whitelist; dashboard baca sahaja kini disimpan dalam gas-admin/ |
 | Manifest | MYSELF / USER_DEPLOYING; deployment sebenar belum diperiksa |
 | PWA | Belum ada manifest PWA atau service worker |
 | Konfigurasi | ID spreadsheet/folder dalam Script Properties; nilainya tidak disalin |

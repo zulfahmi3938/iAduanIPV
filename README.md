@@ -4,7 +4,17 @@ Sistem pengurusan aduan kerosakan dan penyelenggaraan untuk Institut Pengurusan 
 
 Projek ini bertujuan memudahkan warga IPV menghantar aduan serta membantu pentadbir merekod, memantau dan mengemas kini tindakan penyelenggaraan.
 
-## Status semasa — checkpoint Fasa 3.1
+## Status terkini — checkpoint Admin Fasa 4.2
+
+Pada 13 Oktober 2026, empat fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.4.2.zip` dan disimpan secara berasingan dalam `gas-admin/`. Folder `gas/` kekal sebagai checkpoint staf Fasa 3.1 tanpa perubahan.
+
+Snapshot Admin menyediakan dashboard baca sahaja, senarai dan jumlah aduan, tapisan status, muat semula, serta paparan gambar melalui backend. `requireAdmin_()` menyemak emel pengguna aktif pada pelayan untuk halaman dashboard, senarai aduan dan gambar. Manifest Admin ialah `USER_ACCESSING` / `MYSELF`; konfigurasi deployment sebenar tidak diperiksa.
+
+Semakan sesi ini meliputi empat fail, sintaks GS/JavaScript, JSON manifest dan pemeriksaan secrets. Tiada fungsi GAS atau ujian sambungan data dijalankan. Nilai database ID dan emel admin disamarkan dalam salinan GitHub sahaja; baca [nota pemulihan](docs/CHECKPOINT_ADMIN_PHASE_4_2.md) sebelum menggunakan snapshot.
+
+Kemas kini status, penetapan tindakan dan penulisan sejarah belum tersedia dalam empat fail Admin ini. Langkah pembangunan seterusnya ialah menentukan serta menguji aliran kemas kini status dan log tindakan apabila diminta. Tugas semasa hanya menyimpan checkpoint.
+
+## Checkpoint staf Fasa 3.1 — gas/
 
 Pada 13 Oktober 2026, snapshot diterima daripada ZIP pemilik `iADUAN_IPV_GAS_v0.3.1.zip` dan disimpan dalam `gas/`. Ini salinan fail yang dibekalkan pemilik; tiada penarikan terus atau perubahan kepada projek GAS asal dilakukan.
 
@@ -15,7 +25,7 @@ Semakan setempat: keenam-enam fail tersedia, sintaks JavaScript dan JSON manifes
 - UI semasa ialah web app responsif GAS; pemasangan PWA belum dilaksanakan dalam snapshot.
 - Staf memilih nama daripada dropdown tanpa Google Sign-In. Pemilihan nama bukan pengesahan identiti.
 - Manifest snapshot: `executeAs: USER_DEPLOYING`, `access: MYSELF`; keadaan deployment sebenar tidak diperiksa.
-- Dashboard urus setia, semakan status staf, sejarah tindakan dan notifikasi belum dilaksanakan dalam enam fail ini.
+- Semakan status staf, sejarah tindakan dan notifikasi belum dilaksanakan dalam enam fail staf ini. Dashboard Admin baca sahaja tersedia secara berasingan dalam `gas-admin/`.
 - Emel whitelist admin disamarkan dalam salinan GitHub sahaja. Baca [nota checkpoint](docs/CHECKPOINT_PHASE_3_1.md) sebelum menggunakan salinan ini.
 
 ## Rujukan projek
@@ -71,7 +81,7 @@ git clone https://github.com/zulfahmi3938/iAduanIPV.git
 
 Kaedah penyelarasan GAS dengan repository belum ditetapkan. Menyimpan kod di GitHub tidak secara automatik mengemas kini GAS atau deployment aplikasi.
 
-## Dokumentasi
+## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: empat fail checkpoint dashboard Admin Fasa 4.2.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
 
 - [PROJECT.md](PROJECT.md): skop, cadangan struktur data, keputusan tertunggak dan pelan pembangunan.
 - [AGENTS.md](AGENTS.md): arahan untuk pembantu pembangunan yang bekerja dalam repository.
@@ -82,4 +92,4 @@ Dokumentasi akan dikemas kini apabila keputusan dibuat atau pelaksanaan berubah.
 
 ## Had tugas checkpoint semasa
 
-Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Fasa 4 ialah Dashboard Urus Setia selepas checkpoint disahkan.
+Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 4.2 sudah disalin ke `gas-admin/`; perubahan status/log tindakan menunggu tugasan pembangunan seterusnya.
