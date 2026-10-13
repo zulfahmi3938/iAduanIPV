@@ -1,0 +1,509 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #243447;
+    }
+
+    header {
+      background: #033662;
+      color: white;
+      padding: 24px 18px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 27px;
+    }
+
+    header p {
+      margin: 7px 0 0;
+      font-size: 13px;
+      opacity: .9;
+    }
+
+    main {
+      max-width: 560px;
+      margin: 20px auto;
+      padding: 0 14px 30px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 3px 16px #0000000c;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 21px;
+      color: #033662;
+    }
+
+    .hint {
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin: 19px 0 7px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    select, textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 13px;
+      font-family: inherit;
+      font-size: 16px;
+      background: #fff;
+      color: #243447;
+    }
+
+    textarea {
+      min-height: 115px;
+      resize: vertical;
+    }
+
+    select:focus, textarea:focus {
+      outline: 2px solid #2584bc;
+      outline-offset: 1px;
+    }
+
+    button {
+      border: none;
+      border-radius: 11px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .primary {
+      background: #033662;
+      color: white;
+      margin-top: 22px;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fef2f2;
+      color: #991b1b;
+      font-size: 14px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .success {
+      text-align: center;
+      display: none;
+    }
+
+    .success-icon {
+      font-size: 50px;
+      margin-bottom: 12px;
+    }
+
+    .reference {
+      margin: 16px 0;
+      padding: 18px;
+      border: 1px dashed #033662;
+      border-radius: 10px;
+      background: #eef5fa;
+      font-size: 22px;
+      font-weight: bold;
+      color: #033662;
+      overflow-wrap: anywhere;
+    }
+
+    footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      color: #64748b;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>iADUAN IPV</h1>
+    <p>Sistem Aduan Kerosakan</p>
+    <p>Institut Pengurusan Veterinar</p>
+  </header>
+
+  <main>
+    <div class="card" id="formCard">
+      <h2>Laporkan Kerosakan</h2>
+      <p class="hint">
+        Ada kerosakan di institut?
+        Isi maklumat ringkas di bawah.
+      </p>
+
+      <form id="complaintForm">
+        <label for="staff">Nama anda</label>
+        <select id="staff" required>
+          <option value="">Memuatkan senarai...</option>
+        </select>
+
+        <label for="location">
+  Lokasi kerosakan
+</label>
+
+<textarea
+  id="location"
+  placeholder="Contoh: Bilik Latihan 3, berhampiran pintu masuk"
+  maxlength="150"
+  rows="2"
+  required></textarea>
+
+<p class="hint">
+  Nyatakan bangunan, bilik atau tanda tempat
+  berhampiran supaya lokasi mudah dikenal pasti.
+</p>
+
+        <label for="description">
+          Apa yang rosak?
+        </label>
+        <textarea
+          id="description"
+          placeholder="Contoh: Lampu di bilik latihan tidak menyala."
+          minlength="5"
+          maxlength="2000"
+          required></textarea>
+
+<label for="images">
+  Gambar kerosakan (jika ada)
+</label>
+
+<input
+  type="file"
+  id="images"
+  accept="image/jpeg,image/png,image/webp"
+  multiple
+  style="
+    display:block;
+    width:100%;
+    padding:14px;
+    border:1px dashed #94a3b8;
+    border-radius:10px;
+    background:#f8fafc;
+    font-size:14px;
+  ">
+
+<p class="hint">
+  Ambil gambar atau pilih daripada galeri.
+  Maksimum 3 gambar, 5 MB setiap gambar.
+</p>
+
+<div id="imageInfo"
+     class="hint"
+     aria-live="polite"></div>
+
+        <button class="primary"
+                id="submitBtn"
+                type="submit"
+                disabled>
+          Hantar Aduan
+        </button>
+      </form>
+
+      <div id="error" class="message"
+           role="alert"></div>
+    </div>
+
+    <div class="card success" id="successCard"
+         aria-live="polite">
+      <div class="success-icon">✅</div>
+      <h2>Aduan Berjaya Dihantar!</h2>
+      <p class="hint">
+        Terima kasih kerana melaporkan
+        kerosakan ini.
+      </p>
+
+      <p>Nombor rujukan anda:</p>
+      <div class="reference" id="reference"></div>
+
+      <p class="hint">
+        Sila simpan nombor rujukan ini.
+      </p>
+
+      <button class="primary"
+              type="button"
+              onclick="newComplaint()">
+        Buat Aduan Lain
+      </button>
+    </div>
+  </main>
+
+  <footer>
+    iADUAN IPV v0.3 — Versi Pembangunan
+  </footer>
+
+  <script>
+    const form =
+      document.getElementById('complaintForm');
+
+    const submitBtn =
+      document.getElementById('submitBtn');
+
+    const errorBox =
+      document.getElementById('error');
+
+    let submitting = false;
+
+    function showError(message) {
+      errorBox.textContent =
+        message || 'Ralat tidak diketahui.';
+      errorBox.style.display = 'block';
+    }
+
+    function clearError() {
+      errorBox.textContent = '';
+      errorBox.style.display = 'none';
+    }
+
+    function fillSelect(elementId, values,
+                        placeholder) {
+      const select =
+        document.getElementById(elementId);
+
+      select.replaceChildren();
+
+      const empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = placeholder;
+      select.appendChild(empty);
+
+      values.forEach(function(item) {
+        const option =
+          document.createElement('option');
+
+        if (typeof item === 'string') {
+          option.value = item;
+          option.textContent = item;
+        } else {
+          option.value = item.id;
+          option.textContent = item.name;
+        }
+
+        select.appendChild(option);
+      });
+    }
+
+function readImageAsBase64(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+
+    reader.onload = function() {
+      const result = String(reader.result || '');
+
+      resolve({
+        name: file.name,
+        type: file.type,
+        data: result.split(',')[1] || ''
+      });
+    };
+
+    reader.onerror = function() {
+      reject(new Error('Gagal membaca gambar.'));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function prepareImages() {
+  const input = document.getElementById('images');
+  const files = Array.from(input.files || []);
+
+  if (files.length > 3) {
+    return Promise.reject(
+      new Error('Maksimum 3 gambar sahaja.')
+    );
+  }
+
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ];
+
+  for (const file of files) {
+    if (!allowedTypes.includes(file.type)) {
+      return Promise.reject(
+        new Error('Hanya gambar JPG, PNG atau WebP dibenarkan.')
+      );
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return Promise.reject(
+        new Error('Setiap gambar mesti maksimum 5 MB.')
+      );
+    }
+  }
+
+  return Promise.all(files.map(readImageAsBase64));
+}
+
+document.getElementById('images')
+  .addEventListener('change', function() {
+    const files = Array.from(this.files || []);
+    const info = document.getElementById('imageInfo');
+
+    info.textContent = files.length
+      ? files.length + ' gambar dipilih'
+      : '';
+  });
+
+    function loadForm() {
+      submitBtn.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(function(data) {
+          fillSelect(
+            'staff',
+            data.staff,
+            'Pilih nama anda'
+          );
+
+          
+          if (!data.staff.length) {
+            showError(
+              'Senarai staf belum tersedia. ' +
+              'Sila hubungi urus setia.'
+            );
+            return;
+          }
+
+          submitBtn.disabled = false;
+        })
+        .withFailureHandler(function(error) {
+          showError(
+            error.message ||
+            'Gagal memuatkan borang.'
+          );
+        })
+        .getFormOptions();
+    }
+
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      if (submitting) return;
+
+      clearError();
+
+      if (!form.reportValidity()) {
+        return;
+      }
+
+      submitting = true;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menghantar...';
+
+      
+      // Baca gambar sebelum menghantar aduan
+      prepareImages()
+        .then(function(images) {
+
+          const payload = {
+            staffId:
+              document.getElementById('staff').value,
+            location:
+              document.getElementById('location').value,
+            description:
+              document.getElementById('description').value,
+            images: images
+          };
+
+          google.script.run
+            .withSuccessHandler(function(result) {
+              submitting = false;
+
+              document.getElementById(
+                'reference'
+              ).textContent = result.complaintId;
+
+              document.getElementById(
+                'formCard'
+              ).style.display = 'none';
+
+              document.getElementById(
+                'successCard'
+              ).style.display = 'block';
+
+              window.scrollTo(0, 0);
+            })
+            .withFailureHandler(function(error) {
+              submitting = false;
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Hantar Aduan';
+
+              showError(
+                'Aduan belum dapat disahkan. ' +
+                'Semak dengan urus setia sebelum ' +
+                'menghantar semula. ' +
+                (error.message || '')
+              );
+            })
+            .submitComplaint(payload);
+
+        })
+        .catch(function(error) {
+          submitting = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Hantar Aduan';
+
+          showError(error.message);
+        });
+
+    });
+
+    function newComplaint() {
+      form.reset();
+      clearError();
+
+      submitBtn.textContent = 'Hantar Aduan';
+      submitBtn.disabled = false;
+
+      document.getElementById(
+        'successCard'
+      ).style.display = 'none';
+
+      document.getElementById(
+        'formCard'
+      ).style.display = 'block';
+
+      window.scrollTo(0, 0);
+    }
+
+    loadForm();
+  </script>
+</body>
+</html>
