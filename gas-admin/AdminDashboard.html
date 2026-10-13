@@ -344,6 +344,213 @@ function loadComplaintImages(complaintId, card, button) {
     .getAdminComplaintImages(complaintId);
 }
 
+/**
+ * Paparkan atau sembunyikan borang tindakan.
+ * Belum menyimpan data.
+ */
+function openActionForm(item, card, button) {
+  const existing = card.querySelector('.action-form');
+
+  if (existing) {
+    existing.remove();
+    button.textContent = 'Rekod Tindakan';
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'action-form';
+  container.style.marginTop = '15px';
+  container.style.padding = '16px';
+  container.style.background = '#f3f6fa';
+  container.style.borderRadius = '12px';
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'Rekod Tindakan';
+  container.appendChild(heading);
+
+  // Pilihan status.
+  const statusLabel = document.createElement('label');
+  statusLabel.textContent = 'Status Aduan';
+  container.appendChild(statusLabel);
+
+  const status = document.createElement('select');
+  status.style.width = '100%';
+
+  const statuses = [
+    ['BAHARU', 'Baharu'],
+    ['DALAM_SEMAKAN', 'Dalam Semakan'],
+    ['DALAM_TINDAKAN', 'Dalam Tindakan'],
+    ['SELESAI', 'Selesai'],
+    ['DITOLAK', 'Ditolak']
+  ];
+
+  statuses.forEach(function(optionData) {
+    const option = document.createElement('option');
+    option.value = optionData[0];
+    option.textContent = optionData[1];
+    status.appendChild(option);
+  });
+
+  status.value = item.status;
+  container.appendChild(status);
+
+  // Pihak bertanggungjawab.
+  const assigneeLabel = document.createElement('label');
+  assigneeLabel.textContent =
+    'Pegawai / Pihak Bertanggungjawab';
+  container.appendChild(assigneeLabel);
+
+  const assignee = document.createElement('input');
+  assignee.type = 'text';
+  assignee.placeholder =
+    'Contoh: En. Faiezal / Kontraktor ABC';
+  assignee.minLength = 3;
+  assignee.maxLength = 150;
+  assignee.required = true;
+  assignee.style.width = '100%';
+  assignee.style.padding = '11px';
+  assignee.style.border = '1px solid #cbd5e1';
+  assignee.style.borderRadius = '9px';
+  container.appendChild(assignee);
+
+  // Catatan tindakan.
+  const noteLabel = document.createElement('label');
+  noteLabel.textContent = 'Catatan Tindakan';
+  container.appendChild(noteLabel);
+
+  const note = document.createElement('textarea');
+  note.placeholder =
+    'Nyatakan pemeriksaan atau pembaikan yang dilakukan.';
+  note.minLength = 10;
+  note.maxLength = 2000;
+  note.required = true;
+  note.style.width = '100%';
+  note.style.minHeight = '100px';
+  note.style.padding = '11px';
+  note.style.border = '1px solid #cbd5e1';
+  note.style.borderRadius = '9px';
+  container.appendChild(note);
+
+  // Tarikh sasaran.
+  const dateLabel = document.createElement('label');
+  dateLabel.textContent =
+    'Tarikh Sasaran (pilihan)';
+  container.appendChild(dateLabel);
+
+  const targetDate = document.createElement('input');
+  targetDate.type = 'date';
+  targetDate.style.width = '100%';
+  targetDate.style.padding = '11px';
+  targetDate.style.border = '1px solid #cbd5e1';
+  targetDate.style.borderRadius = '9px';
+  container.appendChild(targetDate);
+
+ 
+  // Butang Simpan Tindakan.
+  const saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.textContent = 'Simpan Tindakan';
+  saveBtn.style.marginTop = '16px';
+
+  container.appendChild(saveBtn);
+
+  // Ruangan mesej status.
+  const notice = document.createElement('p');
+  notice.style.fontSize = '13px';
+  notice.style.color = '#64748b';
+  notice.setAttribute('role', 'status');
+  container.appendChild(notice);
+
+  // Elakkan klik berulang semasa menyimpan.
+  let isSaving = false;
+
+  saveBtn.addEventListener('click', function() {
+    if (isSaving) return;
+
+    const payload = {
+      complaintId: item.id,
+      status: status.value,
+      assignee: assignee.value.trim(),
+      note: note.value.trim(),
+      targetDate: targetDate.value
+    };
+
+    // Semak input sebelum menghantar.
+    if (payload.assignee.length < 3 ||
+        payload.assignee.length > 150) {
+      notice.textContent =
+        'Sila isi pihak bertanggungjawab (3-150 aksara).';
+      notice.style.color = '#b91c1c';
+      assignee.focus();
+      return;
+    }
+
+    if (payload.note.length < 10 ||
+        payload.note.length > 2000) {
+      notice.textContent =
+        'Catatan tindakan mesti 10-2000 aksara.';
+      notice.style.color = '#b91c1c';
+      note.focus();
+      return;
+    }
+
+    if (!confirm(
+      'Simpan tindakan untuk aduan ' +
+      item.id + '?'
+    )) {
+      return;
+    }
+
+    isSaving = true;
+    saveBtn.disabled = true;
+    button.disabled = true;
+
+    saveBtn.textContent = 'Menyimpan...';
+    notice.textContent = 'Sedang menyimpan tindakan.';
+    notice.style.color = '#64748b';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || result.success !== true) {
+          notice.textContent =
+            'Respons tidak dapat disahkan. ' +
+            'Semak Google Sheets sebelum cuba lagi.';
+          notice.style.color = '#b91c1c';
+          saveBtn.textContent = 'Semak Rekod';
+          return;
+        }
+
+        notice.textContent =
+          'Tindakan berjaya disimpan!';
+        notice.style.color = '#15803d';
+
+        saveBtn.textContent = 'Berjaya Disimpan';
+
+        // Dapatkan status terkini daripada Sheets.
+        loadComplaints();
+      })
+      .withFailureHandler(function(error) {
+        notice.textContent =
+          'Status simpanan belum dapat disahkan. ' +
+          'Semak tab TINDAKAN dan ADUAN sebelum ' +
+          'mencuba semula. ' +
+          (error.message || '');
+
+        notice.style.color = '#b91c1c';
+        saveBtn.textContent = 'Semak Rekod';
+
+        // Kekalkan butang tidak aktif
+        // untuk elakkan rekod berganda.
+        console.error(error);
+      })
+      .saveAdminAction(payload);
+  });
+
+
+  card.appendChild(container);
+  button.textContent = 'Tutup Borang Tindakan';
+}
+
     function renderComplaints() {
       const filter =
         document.getElementById('statusFilter').value;
@@ -443,6 +650,25 @@ function loadComplaintImages(complaintId, card, button) {
 
           card.appendChild(imageBtn);
         }
+
+        // Butang Rekod Tindakan untuk setiap aduan.
+        const actionBtn =
+          document.createElement('button');
+
+        actionBtn.type = 'button';
+        actionBtn.textContent = 'Rekod Tindakan';
+
+        actionBtn.style.marginTop = '14px';
+        actionBtn.style.marginLeft = '8px';
+
+        actionBtn.addEventListener(
+          'click',
+          function() {
+            openActionForm(item, card, actionBtn);
+          }
+        );
+
+        card.appendChild(actionBtn);
 
         list.appendChild(card);
 
