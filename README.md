@@ -4,7 +4,25 @@ Sistem pengurusan aduan kerosakan dan penyelenggaraan untuk Institut Pengurusan 
 
 Projek ini bertujuan memudahkan warga IPV menghantar aduan serta membantu pentadbir merekod, memantau dan mengemas kini tindakan penyelenggaraan.
 
-## Status terkini — checkpoint Admin Fasa 5.0A
+## Status terkini — checkpoint Admin Fasa 5.0B
+
+Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0B.zip`. Checkpoint ini menyambung Fasa 5.0A (`930a153`) pada branch `main`; folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
+
+Dashboard menambah dropdown Bulan Aduan (12 bulan dan Semua Bulan) serta Tahun Aduan (Semua Tahun dan tahun yang dijana daripada rekod dimuatkan). `populateYearFilter()` membina tahun unik, terbaharu dahulu, dan memulihkan pilihan tahun selepas Muat Semula jika tahun itu masih tersedia; jika tiada, kembali kepada Semua Tahun. Pilihan bulan tidak dibina semula, jadi kekal selepas Muat Semula.
+
+`renderComplaints()` menggabungkan carian ID/lokasi/keterangan/kategori, status, bulan dan tahun melalui syarat AND. Mesej berasingan disediakan untuk tiada padanan carian/penapis, tiada status/tempoh, tiada bulan/tahun dan tiada rekod keseluruhan. Statistik atas dashboard kekal statistik keseluruhan rekod yang dimuatkan; ia tidak bertukar kepada statistik bulan semata-mata kerana penapis digunakan.
+
+**Ujian dilaporkan pemilik:** lima ujian fungsi — Semua Bulan/Semua Tahun, Oktober 2026, September 2026, gabungan status/kata kunci dan Muat Semula — lulus. Enam ujian regresi — penapis Oktober 2026, carian bersama status, gambar, borang tindakan, sejarah tindakan dan Muat Semula — turut dilaporkan lulus. Ujian production belum dilakukan.
+
+**Semakan sesi checkpoint:** sintaks GS/JavaScript dan deklarasi gabungan, struktur HTML/tag/ID/dropdown serta manifest lulus. Enam belas semakan terasing menggunakan kod dashboard sebenar, DOM simulasi dan data rekaan lulus untuk gabungan penapis, carian, pilihan tahun, fallback, pengekalan pilihan serta statistik keseluruhan. Ini bukan ujian runtime GAS atau ulang uji deployment sebenar.
+
+Diff dengan remote Fasa 5.0A menunjukkan hanya `gas-admin/AdminDashboard.html` berubah; lima fail Admin lain sama selepas redaksi konfigurasi. Emel admin dan ID database sebenar kekal disamarkan. Tiada GAS asal, deployment, Sheets atau Drive diubah, dan tiada fungsi tambahan dicipta.
+
+Penapisan menggunakan teks tarikh `dd/MM/yyyy HH:mm`. Regex semasa mengesan bentuk sahaja, bukan kesahihan kalendar. Rekod tanpa bentuk tarikh yang sepadan dikecualikan apabila penapis tarikh aktif, tetapi tarikh mustahil yang berbentuk betul boleh terlepas. Semua tarikh tidak sah perlu dikesan dan disemak sebelum penjanaan laporan rasmi. Status terkini juga tidak semestinya status pada akhir bulan lalu.
+
+Prinsip **Zero Cost First, Mobile First, User Friendly dan Sustainable** dikekalkan. Sasaran seterusnya ialah laporan bulanan untuk Pengarah IPV: ringkasan statistik khusus bulan, senarai lengkap kerosakan diterima dalam bulan tersebut, tarikh aduan dan status penyelesaian. Format sasaran 1–2 halaman A4 dengan Arial minimum 12 pt bagi kandungan utama; tambah halaman jika perlu supaya tiada rekod tercicir. Fungsi laporan belum dibina dalam checkpoint ini.
+
+## Checkpoint terdahulu — Admin Fasa 5.0A
 
 Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0A.zip`. Checkpoint ini menyambung Fasa 4.4 (`4233cad`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 
@@ -117,7 +135,7 @@ git clone https://github.com/zulfahmi3938/iAduanIPV.git
 
 Kaedah penyelarasan GAS dengan repository belum ditetapkan. Menyimpan kod di GitHub tidak secara automatik mengemas kini GAS atau deployment aplikasi.
 
-## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: enam fail checkpoint dashboard Admin Fasa 5.0A, termasuk carian, pengurusan tindakan dan sejarah.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
+## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: enam fail checkpoint Admin Fasa 5.0B, termasuk penapis bulan/tahun, carian, tindakan dan sejarah.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
 
 - [PROJECT.md](PROJECT.md): skop, cadangan struktur data, keputusan tertunggak dan pelan pembangunan.
 - [AGENTS.md](AGENTS.md): arahan untuk pembantu pembangunan yang bekerja dalam repository.
@@ -128,4 +146,4 @@ Dokumentasi akan dikemas kini apabila keputusan dibuat atau pelaksanaan berubah.
 
 ## Had tugas checkpoint semasa
 
-Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 5.0A sudah disalin ke `gas-admin/`, termasuk carian langsung bersama penapis status. Tugas semasa hanya menyimpan kod dan menyemak secara setempat; tiada fungsi GAS dijalankan.
+Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 5.0B disalin ke `gas-admin/`, termasuk penapis bulan/tahun. Tugas semasa hanya menyimpan kod dan menyemak secara setempat; tiada fungsi GAS dijalankan.

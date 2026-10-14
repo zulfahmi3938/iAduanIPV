@@ -216,6 +216,48 @@
       </select>
     </div>
 
+<!-- Fasa 5.0B: Penapis bulan dan tahun aduan -->
+<div style="
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+">
+  <div>
+    <label for="monthFilter">Bulan Aduan</label>
+    <select
+      id="monthFilter"
+      onchange="renderComplaints()"
+      style="width:100%; padding:12px; border:1px solid #CBD5E1; border-radius:10px;"
+    >
+      <option value="ALL">Semua Bulan</option>
+      <option value="01">Januari</option>
+      <option value="02">Februari</option>
+      <option value="03">Mac</option>
+      <option value="04">April</option>
+      <option value="05">Mei</option>
+      <option value="06">Jun</option>
+      <option value="07">Julai</option>
+      <option value="08">Ogos</option>
+      <option value="09">September</option>
+      <option value="10">Oktober</option>
+      <option value="11">November</option>
+      <option value="12">Disember</option>
+    </select>
+  </div>
+
+  <div>
+    <label for="yearFilter">Tahun Aduan</label>
+    <select
+      id="yearFilter"
+      onchange="renderComplaints()"
+      style="width:100%; padding:12px; border:1px solid #CBD5E1; border-radius:10px;"
+    >
+      <option value="ALL">Semua Tahun</option>
+    </select>
+  </div>
+</div>
+
 <!-- Fasa 5.0A: Carian rekod aduan -->
 <div style="margin: 14px 0;">
   <input
@@ -293,7 +335,10 @@
           document.getElementById('doneCount')
             .textContent = data.counts.SELESAI || 0;
 
-          renderComplaints();
+
+populateYearFilter();
+renderComplaints();
+
         })
         .withFailureHandler(function(error) {
           btn.disabled = false;
@@ -304,6 +349,56 @@
         })
         .getAdminComplaints();
     }
+
+/**
+ * Fasa 5.0B - Jana pilihan tahun secara automatik.
+ * Menggunakan tarikh aduan dalam format dd/MM/yyyy HH:mm.
+ */
+function populateYearFilter() {
+  const select = document.getElementById('yearFilter');
+  const previousValue = select.value;
+
+  const years = new Set();
+
+  allComplaints.forEach(function(item) {
+    const match = String(item.date || '').match(
+      /^\d{2}\/\d{2}\/(\d{4})(?:\s|$)/
+    );
+
+    if (match) {
+      years.add(match[1]);
+    }
+  });
+
+  // Bina semula pilihan tanpa memasukkan HTML mentah.
+  select.replaceChildren();
+
+  const allOption = document.createElement('option');
+  allOption.value = 'ALL';
+  allOption.textContent = 'Semua Tahun';
+  select.appendChild(allOption);
+
+  Array.from(years)
+    .sort(function(a, b) {
+      return Number(b) - Number(a);
+    })
+    .forEach(function(year) {
+      const option = document.createElement('option');
+      option.value = year;
+      option.textContent = year;
+      select.appendChild(option);
+    });
+
+  // Kekalkan tahun yang dipilih selepas Muat Semula,
+  // jika tahun tersebut masih wujud.
+  const available = Array.from(select.options).some(
+    function(option) {
+      return option.value === previousValue;
+    }
+  );
+
+  select.value = available ? previousValue : 'ALL';
+}
 
 /**
  * Memuatkan gambar aduan daripada GAS.
@@ -680,11 +775,18 @@ const keyword = (searchInput.value || '')
   .trim()
   .toLocaleLowerCase('ms-MY');
 
+
+// Fasa 5.0B: Gabungan carian, status, bulan dan tahun
+const selectedMonth =
+  document.getElementById('monthFilter').value;
+
+const selectedYear =
+  document.getElementById('yearFilter').value;
+
 const filtered = allComplaints.filter(function(item) {
   const matchesStatus =
     filter === 'ALL' || item.status === filter;
 
-  // Gunakan medan yang memang wujud dalam data dashboard.
   const searchableText = [
     item.id,
     item.location,
@@ -700,8 +802,38 @@ const filtered = allComplaints.filter(function(item) {
   const matchesSearch =
     !keyword || searchableText.includes(keyword);
 
-  return matchesStatus && matchesSearch;
+  // Format tarikh backend: dd/MM/yyyy HH:mm
+  const dateMatch = String(item.date || '').match(
+    /^(\d{2})\/(\d{2})\/(\d{4})(?:\s|$)/
+  );
+
+  // Jangan padankan rekod yang tarikhnya tidak sah
+  // apabila penapis bulan atau tahun digunakan.
+  const hasDateFilter =
+    selectedMonth !== 'ALL' || selectedYear !== 'ALL';
+
+  if (hasDateFilter && !dateMatch) {
+    return false;
+  }
+
+  const complaintMonth = dateMatch ? dateMatch[2] : '';
+  const complaintYear = dateMatch ? dateMatch[3] : '';
+
+  const matchesMonth =
+    selectedMonth === 'ALL' ||
+    complaintMonth === selectedMonth;
+
+  const matchesYear =
+    selectedYear === 'ALL' ||
+    complaintYear === selectedYear;
+
+  return matchesStatus &&
+    matchesSearch &&
+    matchesMonth &&
+    matchesYear;
 });
+
+
 
 
 
@@ -710,10 +842,16 @@ if (!filtered.length) {
 
   if (keyword) {
     message.textContent =
-      'Tiada aduan sepadan dengan carian.';
+      'Tiada aduan sepadan dengan carian dan penapis yang dipilih.';
   } else if (filter !== 'ALL') {
     message.textContent =
-      'Tiada aduan untuk status ini.';
+      'Tiada aduan untuk status dan tempoh yang dipilih.';
+  } else if (
+    selectedMonth !== 'ALL' ||
+    selectedYear !== 'ALL'
+  ) {
+    message.textContent =
+      'Tiada aduan bagi bulan atau tahun yang dipilih.';
   } else {
     message.textContent =
       'Belum ada rekod aduan.';
@@ -721,6 +859,7 @@ if (!filtered.length) {
 
   return;
 }
+
 
 
       message.hidden = true;

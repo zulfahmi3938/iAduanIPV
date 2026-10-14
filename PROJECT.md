@@ -2,7 +2,51 @@
 
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
-## Status terkini — checkpoint Admin Fasa 5.0A
+## Status terkini — checkpoint Admin Fasa 5.0B
+
+Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0B.zip`. Checkpoint ini menyambung Fasa 5.0A (`930a153`) pada branch `main`; folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
+
+Dashboard menambah dropdown Bulan Aduan (12 bulan dan Semua Bulan) serta Tahun Aduan (Semua Tahun dan tahun yang dijana daripada rekod dimuatkan). `populateYearFilter()` membina tahun unik, terbaharu dahulu, dan memulihkan pilihan tahun selepas Muat Semula jika tahun itu masih tersedia; jika tiada, kembali kepada Semua Tahun. Pilihan bulan tidak dibina semula, jadi kekal selepas Muat Semula.
+
+`renderComplaints()` menggabungkan carian ID/lokasi/keterangan/kategori, status, bulan dan tahun melalui syarat AND. Mesej berasingan disediakan untuk tiada padanan carian/penapis, tiada status/tempoh, tiada bulan/tahun dan tiada rekod keseluruhan. Statistik atas dashboard kekal statistik keseluruhan rekod yang dimuatkan; ia tidak bertukar kepada statistik bulan semata-mata kerana penapis digunakan.
+
+**Ujian dilaporkan pemilik:** lima ujian fungsi — Semua Bulan/Semua Tahun, Oktober 2026, September 2026, gabungan status/kata kunci dan Muat Semula — lulus. Enam ujian regresi — penapis Oktober 2026, carian bersama status, gambar, borang tindakan, sejarah tindakan dan Muat Semula — turut dilaporkan lulus. Ujian production belum dilakukan.
+
+**Semakan sesi checkpoint:** sintaks GS/JavaScript dan deklarasi gabungan, struktur HTML/tag/ID/dropdown serta manifest lulus. Enam belas semakan terasing menggunakan kod dashboard sebenar, DOM simulasi dan data rekaan lulus untuk gabungan penapis, carian, pilihan tahun, fallback, pengekalan pilihan serta statistik keseluruhan. Ini bukan ujian runtime GAS atau ulang uji deployment sebenar.
+
+Diff dengan remote Fasa 5.0A menunjukkan hanya `gas-admin/AdminDashboard.html` berubah; lima fail Admin lain sama selepas redaksi konfigurasi. Emel admin dan ID database sebenar kekal disamarkan. Tiada GAS asal, deployment, Sheets atau Drive diubah, dan tiada fungsi tambahan dicipta.
+
+Penapisan menggunakan teks tarikh `dd/MM/yyyy HH:mm`. Regex semasa mengesan bentuk sahaja, bukan kesahihan kalendar. Rekod tanpa bentuk tarikh yang sepadan dikecualikan apabila penapis tarikh aktif, tetapi tarikh mustahil yang berbentuk betul boleh terlepas. Semua tarikh tidak sah perlu dikesan dan disemak sebelum penjanaan laporan rasmi. Status terkini juga tidak semestinya status pada akhir bulan lalu.
+
+Prinsip **Zero Cost First, Mobile First, User Friendly dan Sustainable** dikekalkan. Sasaran seterusnya ialah laporan bulanan untuk Pengarah IPV: ringkasan statistik khusus bulan, senarai lengkap kerosakan diterima dalam bulan tersebut, tarikh aduan dan status penyelesaian. Format sasaran 1–2 halaman A4 dengan Arial minimum 12 pt bagi kandungan utama; tambah halaman jika perlu supaya tiada rekod tercicir. Fungsi laporan belum dibina dalam checkpoint ini.
+
+## Sasaran laporan bulanan Pengarah IPV — belum dibina
+
+| Bahagian | Keperluan |
+| --- | --- |
+| Tempoh | Satu bulan dan tahun yang dinyatakan dengan jelas, berdasarkan tarikh aduan diterima |
+| Ringkasan | Jumlah aduan bulan tersebut serta pecahan status penyelesaian yang sepadan dengan senarai |
+| Senarai lengkap | Semua kerosakan diterima dalam bulan itu: nombor rujukan, tarikh aduan, lokasi, keterangan kerosakan dan status penyelesaian di sebelah setiap rekod |
+| Susun atur | Sasaran 1–2 halaman A4; Arial minimum 12 pt untuk kandungan utama |
+| Rekod panjang/banyak | Tambah halaman mengikut keperluan; jangan mengecilkan font atau membuang/memotong rekod demi had dua halaman |
+| Semakan | Sahkan tarikh, jumlah dan kelengkapan senarai sebelum laporan rasmi dihasilkan |
+
+**Statistik keseluruhan dashboard** dikira daripada semua rekod yang dimuatkan dan kekal walaupun senarai ditapis. **Statistik khusus bulan laporan** perlu dikira daripada semua aduan diterima dalam bulan/tahun laporan sahaja. Ia tidak boleh mengambil angka keseluruhan dashboard. Senarai laporan bulanan mesti lengkap tanpa pengecualian akibat kata kunci atau penapis status dashboard; jika pecahan status diperlukan, semua rekod bulan itu masih mesti disenaraikan.
+
+Bezakan kohort aduan diterima pada bulan laporan daripada kerja yang diselesaikan pada bulan itu untuk aduan bulan sebelumnya. Jika ringkasan penyelesaian digunakan, labelkan asas kiraan dan waktu status dengan jelas. Status semasa penjanaan boleh berubah daripada kedudukan hujung bulan lalu. Laporan yang mendakwa status pada akhir bulan memerlukan rekonstruksi sejarah TINDAKAN/timestamp atau snapshot yang boleh disahkan; checkpoint ini belum membinanya.
+
+## Batas dan semakan data Fasa 5.0B
+
+- Penapis memperoleh bulan/tahun daripada `item.date` dalam format backend `dd/MM/yyyy HH:mm`, bukan Date/ISO mentah.
+- Regex semasa bukan validator kalendar atau masa yang lengkap. Contohnya bentuk `31/02/2026` boleh diterima. Rekod tidak sah tidak boleh diabaikan secara senyap sehingga hilang daripada laporan rasmi; kesan, laporkan dan selesaikan isu data terlebih dahulu.
+- Tahun dijana daripada rekod dimuatkan, bukan daripada senarai tahun statik. Tahun yang tidak lagi ada selepas refresh kembali kepada ALL; bulan yang dipilih kekal.
+- Carian/status/bulan/tahun ialah penapisan browser pada senarai dimuatkan. Ia tidak mengubah angka ringkasan keseluruhan atau data Google.
+- Ujian setempat mengesahkan logik dengan data rekaan dan DOM simulasi. Lima ujian fungsi serta enam regresi sebenar direkodkan sebagai laporan pemilik. Ujian production belum dilakukan.
+- Lima fail Admin selain HTML kekal pada hash Fasa 5.0A selepas redaksi. Folder gas/, AGENTS.md dan dokumen checkpoint lain tidak diubah.
+- Konfigurasi salinan GitHub kekal `ADMIN_CONFIG.databaseId = 'REPLACE_WITH_DEV_SPREADSHEET_ID'` dan `ADMIN_CONFIG.adminEmail = 'admin@example.invalid'`. Pulihkan daripada ZIP asal/config pemilik ke salinan kerja persendirian apabila diperlukan; jangan commit nilai sebenar. Tiada pemulihan atau perubahan GAS dilakukan sekarang.
+- Semua batas pengesahan admin, rollback/idempotensi dan susunan sejarah daripada checkpoint terdahulu masih terpakai. Jangan menganggap laporan bulanan atau production readiness sudah tersedia.
+
+## Checkpoint terdahulu — Admin Fasa 5.0A
 
 Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0A.zip`. Checkpoint ini menyambung Fasa 4.4 (`4233cad`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 
