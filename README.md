@@ -4,7 +4,21 @@ Sistem pengurusan aduan kerosakan dan penyelenggaraan untuk Institut Pengurusan 
 
 Projek ini bertujuan memudahkan warga IPV menghantar aduan serta membantu pentadbir merekod, memantau dan mengemas kini tindakan penyelenggaraan.
 
-## Status terkini — checkpoint Admin Fasa 4.4
+## Status terkini — checkpoint Admin Fasa 5.0A
+
+Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0A.zip`. Checkpoint ini menyambung Fasa 4.4 (`4233cad`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
+
+Dashboard kini mempunyai carian langsung melalui medan `id`, `location`, `description` dan `category`. Setiap input memanggil `renderComplaints()`; kata carian dipangkas dan dibandingkan tanpa mengira huruf besar/kecil. Padanan carian digabungkan dengan penapis status melalui syarat AND. Carian kosong mengekalkan penapisan status sahaja. Mesej berasingan tersedia untuk tiada padanan carian, tiada rekod bagi status dan database kosong.
+
+**Ujian yang dilaporkan pemilik:** fungsi carian serta empat ujian regresi asas — Muat Semula, Lihat Gambar, Rekod Tindakan dan Sejarah Tindakan — lulus. Penggunaan production belum diuji.
+
+**Semakan sesi checkpoint:** semua fail GS dan JavaScript HTML lulus parsing sintaks, termasuk deklarasi GS gabungan; struktur HTML/tag/ID dan input carian disemak; manifest kekal V8, Asia/Singapore, USER_ACCESSING / MYSELF. Sebelas semakan terasing menggunakan fungsi renderComplaints sebenar dengan DOM simulasi/data rekaan lulus untuk empat medan, normalisasi carian, gabungan status, carian kosong dan mesej tiada padanan. Ini bukan pengulangan ujian runtime GAS atau dashboard sebenar.
+
+Diff terhadap remote Fasa 4.4 menunjukkan hanya `gas-admin/AdminDashboard.html` berubah. Lima fail Admin lain sama selepas penyamaran dua nilai konfigurasi dalam `Code.gs`. Emel admin dan ID database sebenar tidak diterbitkan; kaedah pemulihan persendirian Fasa 4.4 masih terpakai. Tiada fungsi tambahan dibina, dan tiada GAS asal, deployment, Sheets atau Drive diubah.
+
+Carian ialah penapisan di browser terhadap rekod yang sudah dimuatkan, bukan carian backend baharu. Medan category boleh dicari apabila mempunyai nilai; checkpoint ini tidak menambah input kategori pada aplikasi staf. Pengesahan admin, sejarah dan batas terdahulu kekal. Tunggu arahan pemilik sebelum langkah pembangunan seterusnya.
+
+## Checkpoint terdahulu — Admin Fasa 4.4
 
 Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.4.4.zip`. Checkpoint ini menyambung Fasa 4.3 (`9d74856`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 
@@ -103,7 +117,7 @@ git clone https://github.com/zulfahmi3938/iAduanIPV.git
 
 Kaedah penyelarasan GAS dengan repository belum ditetapkan. Menyimpan kod di GitHub tidak secara automatik mengemas kini GAS atau deployment aplikasi.
 
-## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: enam fail checkpoint dashboard, pengurusan tindakan dan sejarah Admin Fasa 4.4.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
+## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: enam fail checkpoint dashboard Admin Fasa 5.0A, termasuk carian, pengurusan tindakan dan sejarah.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
 
 - [PROJECT.md](PROJECT.md): skop, cadangan struktur data, keputusan tertunggak dan pelan pembangunan.
 - [AGENTS.md](AGENTS.md): arahan untuk pembantu pembangunan yang bekerja dalam repository.
@@ -114,4 +128,4 @@ Dokumentasi akan dikemas kini apabila keputusan dibuat atau pelaksanaan berubah.
 
 ## Had tugas checkpoint semasa
 
-Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 4.4 sudah disalin ke `gas-admin/`, termasuk bacaan dan paparan sejarah. Tugas semasa hanya menyimpan kod; tiada fungsi GAS dijalankan.
+Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 5.0A sudah disalin ke `gas-admin/`, termasuk carian langsung bersama penapis status. Tugas semasa hanya menyimpan kod dan menyemak secara setempat; tiada fungsi GAS dijalankan.

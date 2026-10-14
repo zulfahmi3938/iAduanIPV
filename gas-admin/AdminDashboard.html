@@ -216,6 +216,28 @@
       </select>
     </div>
 
+<!-- Fasa 5.0A: Carian rekod aduan -->
+<div style="margin: 14px 0;">
+  <input
+    type="search"
+    id="searchInput"
+    placeholder="Cari ID aduan, lokasi atau kerosakan..."
+    aria-label="Carian rekod aduan"
+    autocomplete="off"
+    oninput="renderComplaints()"
+    style="
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border: 1px solid #CBD5E1;
+      border-radius: 10px;
+      font-size: 15px;
+      background: #FFFFFF;
+      color: #0E2A47;
+    "
+  >
+</div>
+
     <div id="message"
          role="status"
          class="notice">
@@ -651,19 +673,55 @@ function openActionForm(item, card, button) {
 
       list.replaceChildren();
 
-      const filtered = allComplaints.filter(
-        function(item) {
-          return filter === 'ALL' ||
-            item.status === filter;
-        }
-      );
+     
+// Fasa 5.0A: Carian bersama penapis status
+const searchInput = document.getElementById('searchInput');
+const keyword = (searchInput.value || '')
+  .trim()
+  .toLocaleLowerCase('ms-MY');
 
-      if (!filtered.length) {
-        message.hidden = false;
-        message.textContent =
-          'Tiada aduan untuk status ini.';
-        return;
-      }
+const filtered = allComplaints.filter(function(item) {
+  const matchesStatus =
+    filter === 'ALL' || item.status === filter;
+
+  // Gunakan medan yang memang wujud dalam data dashboard.
+  const searchableText = [
+    item.id,
+    item.location,
+    item.description,
+    item.category
+  ]
+    .map(function(value) {
+      return String(value || '');
+    })
+    .join(' ')
+    .toLocaleLowerCase('ms-MY');
+
+  const matchesSearch =
+    !keyword || searchableText.includes(keyword);
+
+  return matchesStatus && matchesSearch;
+});
+
+
+
+if (!filtered.length) {
+  message.hidden = false;
+
+  if (keyword) {
+    message.textContent =
+      'Tiada aduan sepadan dengan carian.';
+  } else if (filter !== 'ALL') {
+    message.textContent =
+      'Tiada aduan untuk status ini.';
+  } else {
+    message.textContent =
+      'Belum ada rekod aduan.';
+  }
+
+  return;
+}
+
 
       message.hidden = true;
 
