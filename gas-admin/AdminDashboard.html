@@ -165,6 +165,95 @@
         flex-wrap: wrap;
       }
     }
+
+/* Fasa 5.0D-D: Tetapan cetakan laporan bulanan */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body {
+    font-family: Arial, sans-serif !important;
+    font-size: 12pt !important;
+    color: #000 !important;
+  }
+
+  /* Sembunyikan semua elemen dashboard. */
+  body > * {
+    display: none !important;
+  }
+
+  /* Paparkan hanya laluan ke laporan. */
+  body > main {
+    display: block !important;
+  }
+
+  main > * {
+    display: none !important;
+  }
+
+  /*
+   * Laporan berada dalam main sebelum complaintList.
+   * Kekalkan laporan sahaja.
+   */
+  #monthlyReportPreview {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 12pt !important;
+    color: #000 !important;
+  }
+
+  #monthlyReportPreview table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 12pt !important;
+  }
+
+  #monthlyReportPreview th,
+  #monthlyReportPreview td {
+    font-size: 12pt !important;
+    vertical-align: top !important;
+    overflow-wrap: anywhere;
+  }
+
+  #monthlyReportPreview thead {
+    display: table-header-group;
+  }
+
+  #monthlyReportPreview tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #monthlyReportPreview h2,
+  #monthlyReportPreview h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+/* Sembunyikan butang Cetak / Simpan PDF */
+#monthlyReportPreview .report-print-btn {
+  display: none !important;
+}
+
+}
+
+
   </style>
 </head>
 
@@ -268,6 +357,28 @@
       <option value="ALL">Semua Tahun</option>
     </select>
   </div>
+</div>
+
+<!-- Fasa 5.0D: Butang laporan bulanan -->
+<div style="margin: 12px 0 18px;">
+  <button
+    type="button"
+    id="monthlyReportBtn"
+    onclick="prepareMonthlyReport()"
+    style="
+      background: #033662;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    "
+  >
+    Jana Laporan Bulanan
+  </button>
 </div>
 
 <!-- Fasa 5.0A: Carian rekod aduan -->
@@ -890,6 +1001,444 @@ function openActionForm(item, card, button) {
   card.appendChild(container);
   button.textContent = 'Tutup Borang Tindakan';
 }
+
+/**
+ * Fasa 5.0D-A - Persediaan laporan bulanan.
+ * Langkah pertama: sahkan bulan dan tahun.
+ * Belum menjana laporan atau mengubah database.
+ */
+function prepareMonthlyReport() {
+  const month =
+    document.getElementById('monthFilter').value;
+
+  const year =
+    document.getElementById('yearFilter').value;
+
+  if (month === 'ALL' || year === 'ALL') {
+    alert(
+      'Sila pilih satu bulan dan satu tahun ' +
+      'untuk menjana laporan bulanan.'
+    );
+    return;
+  }
+
+
+try {
+  const report = buildMonthlyReportData(month, year);
+
+
+  // Fasa 5.0D-C: Buka pratonton laporan bulanan.
+  showMonthlyReportPreview(report);
+
+
+} catch (error) {
+  alert('Gagal menyediakan laporan: ' + error.message);
+}
+
+}
+
+/**
+ * Fasa 5.0D-B: Sediakan data laporan bulanan.
+ * Membaca allComplaints sahaja.
+ * Tiada perubahan pada Google Sheets.
+ */
+function buildMonthlyReportData(month, year) {
+  const activeStatuses = [
+    'BAHARU',
+    'DALAM_SEMAKAN',
+    'DALAM_TINDAKAN'
+  ];
+
+  const validStatuses = activeStatuses.concat([
+    'SELESAI',
+    'DITOLAK'
+  ]);
+
+  const selectedPeriod = Number(year) * 100 +
+    Number(month);
+
+  if (
+    !/^(0[1-9]|1[0-2])$/.test(String(month)) ||
+    !/^\d{4}$/.test(String(year))
+  ) {
+    throw new Error('Bulan atau tahun laporan tidak sah.');
+  }
+
+  const monthly = [];
+  const previousPending = [];
+  const issues = [];
+
+  allComplaints.forEach(function(item) {
+    const id = String(item.id || '').trim();
+    const dateText = String(item.date || '');
+
+    const match = dateText.match(
+      /^(\d{2})\/(\d{2})\/(\d{4})(?:\s|$)/
+    );
+
+    if (!match) {
+      issues.push(id + ': format tarikh tidak sah');
+      return;
+    }
+
+    const day = Number(match[1]);
+    const mm = Number(match[2]);
+    const yyyy = Number(match[3]);
+
+    const utc = Date.UTC(yyyy, mm - 1, day);
+    const check = new Date(utc);
+
+    if (
+      check.getUTCFullYear() !== yyyy ||
+      check.getUTCMonth() !== mm - 1 ||
+      check.getUTCDate() !== day
+    ) {
+      issues.push(id + ': tarikh tidak sah');
+      return;
+    }
+
+// Fasa 5.0D: Semak tarikh aduan masa depan.
+const malaysiaParts = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Kuala_Lumpur',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+}).formatToParts(new Date());
+
+const malaysiaDate = {};
+
+malaysiaParts.forEach(function(part) {
+  if (part.type !== 'literal') {
+    malaysiaDate[part.type] = part.value;
+  }
+});
+
+const todayUTC = Date.UTC(
+  Number(malaysiaDate.year),
+  Number(malaysiaDate.month) - 1,
+  Number(malaysiaDate.day)
+);
+
+
+if (
+  !malaysiaDate.year ||
+  !malaysiaDate.month ||
+  !malaysiaDate.day ||
+  !Number.isFinite(todayUTC)
+) {
+
+  issues.push(id + ': gagal mengesahkan tarikh semasa');
+  return;
+}
+
+if (utc > todayUTC) {
+  issues.push(id + ': tarikh aduan berada pada masa depan');
+  return;
+}
+
+    const status = String(item.status || '');
+
+    if (!validStatuses.includes(status)) {
+      issues.push(id + ': status tidak dikenali');
+      return;
+    }
+
+    const itemPeriod = yyyy * 100 + mm;
+
+    if (itemPeriod === selectedPeriod) {
+      monthly.push(item);
+    } else if (
+      itemPeriod < selectedPeriod &&
+      activeStatuses.includes(status)
+    ) {
+      previousPending.push(item);
+    }
+  });
+
+  if (issues.length) {
+    throw new Error(
+      'Terdapat rekod yang perlu disemak: ' +
+      issues.join('; ')
+    );
+  }
+
+  const counts = {
+    total: monthly.length,
+    selesai: monthly.filter(function(item) {
+      return item.status === 'SELESAI';
+    }).length,
+    belumSelesai: monthly.filter(function(item) {
+      return activeStatuses.includes(item.status);
+    }).length,
+    ditolak: monthly.filter(function(item) {
+      return item.status === 'DITOLAK';
+    }).length,
+    tertunggakLama: previousPending.length
+  };
+
+  return {
+    month: month,
+    year: year,
+    generatedAt: new Date().toISOString(),
+    counts: counts,
+    monthly: monthly,
+    previousPending: previousPending
+  };
+}
+
+
+/**
+ * Fasa 5.0D-C: Pratonton laporan bulanan.
+ * Hanya memaparkan data, tanpa mengubah database.
+ */
+function showMonthlyReportPreview(report) {
+  const oldPreview =
+    document.getElementById('monthlyReportPreview');
+
+  if (oldPreview) {
+    oldPreview.remove();
+  }
+
+  const container = document.createElement('section');
+  container.id = 'monthlyReportPreview';
+  container.style.background = '#FFFFFF';
+  container.style.color = '#111111';
+  container.style.padding = '24px';
+  container.style.margin = '20px 0';
+  container.style.border = '1px solid #CBD5E1';
+  container.style.borderRadius = '10px';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.fontSize = '12pt';
+
+  // Fasa 5.0D-D: Butang Cetak / Simpan PDF
+  const printBtn = document.createElement('button');
+
+  printBtn.type = 'button';
+  printBtn.textContent = 'Cetak / Simpan PDF';
+  printBtn.className = 'report-print-btn';
+
+  printBtn.style.background = '#033662';
+  printBtn.style.color = '#FFFFFF';
+  printBtn.style.border = 'none';
+  printBtn.style.borderRadius = '8px';
+  printBtn.style.padding = '12px 18px';
+  printBtn.style.marginBottom = '16px';
+  printBtn.style.fontSize = '14px';
+  printBtn.style.fontWeight = '600';
+  printBtn.style.cursor = 'pointer';
+
+  printBtn.addEventListener('click', function() {
+    printMonthlyReport();
+  });
+
+  container.appendChild(printBtn);
+
+  // Fasa 5.0D-F: Butang Tutup Pratonton.
+  const closeBtn = document.createElement('button');
+
+  closeBtn.type = 'button';
+  closeBtn.textContent = 'Tutup Pratonton';
+  closeBtn.className = 'report-print-btn';
+
+  closeBtn.style.background = '#FFFFFF';
+  closeBtn.style.color = '#033662';
+  closeBtn.style.border = '1px solid #033662';
+  closeBtn.style.borderRadius = '8px';
+  closeBtn.style.padding = '12px 18px';
+  closeBtn.style.marginLeft = '10px';
+  closeBtn.style.marginBottom = '16px';
+  closeBtn.style.fontSize = '14px';
+  closeBtn.style.fontWeight = '600';
+  closeBtn.style.cursor = 'pointer';
+
+  closeBtn.addEventListener('click', function() {
+    container.remove();
+
+    document.getElementById('monthlyReportBtn')
+      .scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+  });
+
+  container.appendChild(closeBtn);
+
+  const heading = document.createElement('h2');
+  heading.textContent = 'LAPORAN ADUAN KEROSAKAN IPV';
+  container.appendChild(heading);
+
+  const period = document.createElement('p');
+  period.textContent =
+    'Tempoh laporan: ' + report.month + '/' + report.year;
+  container.appendChild(period);
+
+
+const reference = document.createElement('p');
+
+const generatedDate = new Date(report.generatedAt);
+
+if (Number.isNaN(generatedDate.getTime())) {
+  throw new Error('Tarikh penjanaan laporan tidak sah.');
+}
+
+const formattedDate = new Intl.DateTimeFormat('ms-MY', {
+  timeZone: 'Asia/Kuala_Lumpur',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true
+}).format(generatedDate);
+
+reference.textContent =
+  'Status terkini setakat: ' + formattedDate;
+
+container.appendChild(reference);
+
+
+  const summary = document.createElement('p');
+  summary.textContent =
+    'Jumlah: ' + report.counts.total +
+    ' | Selesai: ' + report.counts.selesai +
+    ' | Belum Selesai: ' + report.counts.belumSelesai +
+    ' | Ditolak: ' + report.counts.ditolak;
+  container.appendChild(summary);
+
+  function addSection(title, records) {
+    const subtitle = document.createElement('h3');
+    subtitle.textContent = title;
+    container.appendChild(subtitle);
+
+    if (!records.length) {
+      const empty = document.createElement('p');
+      empty.textContent = 'Tiada rekod.';
+      container.appendChild(empty);
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.fontSize = '12pt';
+
+    const header = document.createElement('tr');
+
+
+['Bil.', 'Tarikh / Kerosakan / Lokasi', 'Status']
+  .forEach(function(label, index) {
+    const th = document.createElement('th');
+
+    th.textContent = label;
+    th.style.border = '1px solid #999';
+    th.style.padding = '8px';
+    th.style.textAlign = 'left';
+
+    // Fasa 5.0D-D: Lebar lajur laporan.
+    const widths = ['8%', '67%', '25%'];
+    th.style.width = widths[index];
+
+    if (index === 0) {
+      th.style.whiteSpace = 'nowrap';
+    }
+
+    header.appendChild(th);
+  });
+
+
+    const thead = document.createElement('thead');
+    thead.appendChild(header);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+
+    records.forEach(function(item, index) {
+      const tr = document.createElement('tr');
+      const status = item.status === 'SELESAI'
+        ? 'Selesai'
+        : item.status === 'DITOLAK'
+          ? 'Ditolak'
+          : 'Belum Selesai';
+
+      const values = [
+        String(index + 1),
+        [
+          item.date || '-',
+          item.description || '-',
+          'Lokasi: ' + (item.location || '-'),
+          'ID: ' + (item.id || '-')
+        ].join('\n'),
+        status
+      ];
+
+
+values.forEach(function(value, index) {
+  const td = document.createElement('td');
+
+  td.textContent = value;
+  td.style.whiteSpace = 'pre-line';
+  td.style.border = '1px solid #999';
+  td.style.padding = '8px';
+  td.style.verticalAlign = 'top';
+
+  // Elakkan nombor bilangan terpecah.
+  if (index === 0) {
+    td.style.whiteSpace = 'nowrap';
+  }
+
+  tr.appendChild(td);
+});
+
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+  }
+
+  addSection(
+    'A. Aduan Diterima Dalam Bulan Laporan',
+    report.monthly
+  );
+
+  addSection(
+    'B. Aduan Lama Masih Belum Selesai',
+    report.previousPending
+  );
+
+  const note = document.createElement('p');
+  note.textContent =
+    'Nota: Status yang dipaparkan ialah status terkini ' +
+    'semasa laporan dijana.';
+  container.appendChild(note);
+
+  const anchor = document.getElementById('complaintList');
+  anchor.parentNode.insertBefore(container, anchor);
+
+  container.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start'
+  });
+}
+
+/**
+ * Fasa 5.0D-D: Cetak laporan bulanan.
+ * Menggunakan dialog cetakan pelayar.
+ * Tidak mengubah Google Sheets.
+ */
+function printMonthlyReport() {
+  const preview =
+    document.getElementById('monthlyReportPreview');
+
+  if (!preview) {
+    alert('Sila jana pratonton laporan terlebih dahulu.');
+    return;
+  }
+
+  window.print();
+}
+
 
     function renderComplaints() {
       const filter =

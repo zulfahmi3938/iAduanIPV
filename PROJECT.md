@@ -2,7 +2,63 @@
 
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
-## Status terkini — checkpoint Admin Fasa 5.0C
+## Status terkini — checkpoint Admin Fasa 5.0D: Laporan Bulanan Pengarah IPV
+
+Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0D.zip`. Checkpoint ini menyambung Fasa 5.0C (`8bbc938`) pada branch `main`; folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
+
+Fungsi `prepareMonthlyReport()` mengesahkan pilihan satu bulan dan tahun. `buildMonthlyReportData()` mengumpulkan semua aduan diterima dalam bulan laporan tanpa mengehadkan senarai kepada carian/status dashboard, mengira jumlah/selesai/belum selesai/ditolak, dan menyediakan senarai berasingan aduan bulan terdahulu yang masih aktif berdasarkan status terkini. Tarikh tidak sah, hari masa depan atau status tidak dikenali menghentikan laporan untuk semakan, termasuk rekod bermasalah di luar bulan pilihan.
+
+`showMonthlyReportPreview()` memaparkan ringkasan, senarai lengkap, tunggakan lama serta tarikh/masa rujukan status dalam waktu Malaysia. `printMonthlyReport()` membuka dialog cetakan pelayar. Pratonton menyediakan **Cetak / Simpan PDF** dan **Tutup Pratonton**; menutup pratonton mengekalkan senarai serta penapis dan membolehkan laporan dijana semula.
+
+Cetakan menetapkan A4 potret, Arial minimum 12 pt bagi kandungan utama, tajuk jadual berulang dan elakan pemecahan baris setakat kemampuan pelayar. Lebar lajur ialah 8%/67%/25%. Kedua-dua butang disembunyikan dalam cetakan. Sasaran 1–2 halaman tidak menghadkan rekod: tambah halaman apabila perlu, tanpa mengecilkan font atau membuang rekod.
+
+**Semakan sesi checkpoint:** enam fail disemak; sintaks GS/JavaScript, deklarasi gabungan, struktur HTML, manifest dan CSS cetakan diperiksa. Enam belas semakan terasing dengan DOM simulasi/data rekaan/jam tetap lulus untuk tempoh, statistik/senarai penuh, tunggakan lama, ralat integriti, kawalan pratonton/cetak dan kelengkapan 25 rekod. Ia bukan cetakan PDF sebenar atau ujian deployment GAS.
+
+Ketiga-tiga fungsi ujian sementara `testMonthlyReportData()`, `testMonthlyReportIntegrity()` dan `testLongMonthlyReport()` sudah tiada dalam AdminDashboard.html. Teks aduan dipaparkan melalui textContent; emel admin dan ID database sebenar disamarkan secara konsisten. Diff terhadap main/checkpoint Fasa 5.0C menunjukkan hanya AdminDashboard.html berubah; lima fail Admin lain sama selepas redaksi konfigurasi.
+
+GAS asal, deployment, Sheets dan Drive tidak diubah. Tiada dependency/perkhidmatan berbayar atau fungsi tambahan dicipta. Prinsip Zero Cost First, Mobile First, User Friendly dan Sustainable dikekalkan.
+
+## Keputusan DEV Fasa 5.0D — dilaporkan pemilik
+
+| Ujian | Keputusan dilaporkan |
+| --- | --- |
+| Pengesahan bulan/tahun | Empat ujian lulus |
+| Pengumpulan Oktober 2026 | 2 aduan, 2 belum selesai; lulus |
+| Pratonton dan masa rujukan | Lulus, tarikh/masa Malaysia dipaparkan |
+| PDF data sebenar | PDF dua aduan berjaya dihasilkan |
+| Simulasi cetakan 25 aduan | PDF A4 lima halaman berjaya dihasilkan |
+| Kelengkapan dan pagination | Semua 25 rekod lengkap, tajuk jadual diulang dan tiada baris terpotong dikesan |
+| Lebar lajur | Diperbaiki tanpa mengecilkan Arial 12 pt |
+| Integriti asas | Empat ujian lulus termasuk mesej ralat |
+| Regresi Fasa 5.0D | Tujuh ujian dilaporkan lulus: Muat Semula, carian/penapis, gambar, tindakan, sejarah, laporan Oktober 2026 dan PDF |
+| UX Tutup Pratonton | Lima ujian dilaporkan lulus: kedua-dua butang, tutup, senarai/penapis kekal, jana semula dan kawalan tersembunyi dalam cetakan |
+| Selepas pembersihan ujian sementara | Ujian laporan sebenar dilaporkan lulus |
+
+Keputusan ini berasal daripada laporan pemilik dalam tugasan, bukan pemeriksaan PDF atau ulang uji runtime sesi ini. Fail PDF, gambar, data aduan sebenar dan output log peribadi tidak dimasukkan ke GitHub.
+
+## Peraturan dan batas laporan Fasa 5.0D
+
+- Tempoh berdasarkan **tarikh aduan diterima**. Status dalam laporan ialah status terkini data yang dimuatkan ketika laporan disediakan, bukan keadaan pada hari terakhir bulan laporan. Tarikh/masa rujukan penjanaan mesti dipaparkan dengan jelas.
+- Laporan mengambil allComplaints daripada muatan dashboard terakhir. Gunakan Muat Semula sebelum menghasilkan laporan untuk mendapatkan data terkini; source ini tidak membuat bacaan backend baharu khusus sewaktu Jana Laporan. Tarikh rujukan ialah masa penjanaan pratonton, bukan bukti transaksi/snapshot atomik database.
+- Statistik bulanan menggunakan semua aduan dalam bulan/tahun dipilih. Carian dan penapis status dashboard tidak mengeluarkan rekod daripada laporan. Kad dashboard kekal statistik keseluruhan.
+- Senarai B ialah aduan daripada tempoh lebih awal yang masih BAHARU/DALAM_SEMAKAN/DALAM_TINDAKAN pada data semasa. Ia berasingan daripada jumlah aduan diterima dalam bulan laporan; bukan rekonstruksi tunggakan pada hujung bulan lampau.
+- Status yang tidak dikenali, tarikh tidak sah dan hari masa depan menghentikan laporan untuk semakan; jangan menghasilkan laporan separa sambil membuang rekod bermasalah. Validasi kalendar laporan tidak sama dengan regex penapis bulan/tahun yang hanya membaca bentuk tarikh.
+- Source memeriksa tarikh kalendar, bukan setiap komponen jam/minit dalam teks asal atau jam masa depan pada hari yang sama.
+- Ujian production belum dijalankan. Ujian tekanan dengan rekod jauh lebih banyak belum dibuat.
+- Keterangan sangat panjang dan bulan tanpa aduan belum diuji secara khusus pada DEV. Source menyediakan keadaan Tiada rekod, tetapi itu bukan bukti ujian kes kosong.
+- Cetakan/PDF bergantung pada pelayar dan tetapan cetakan. CSS break-inside: avoid serta table-header-group ialah arahan layout, bukan jaminan semua pelayar atau baris melebihi satu halaman tidak akan terpotong.
+- Sasaran 1–2 halaman A4; tambah halaman untuk mengekalkan semua rekod. Kekalkan Arial 12 pt minimum bagi kandungan utama.
+- Simulasi setempat dan simulasi cetakan bukan pengganti ujian data sebenar. Ujian DOM sesi ini tidak membuktikan jumlah halaman, ukuran fizikal atau hasil PDF.
+- Fungsi ujian sementara yang dinamakan telah dikeluarkan daripada HTML. Fungsi ujian GAS lain dalam fail backend tidak diubah dan tidak dijalankan.
+- Batas lama mengenai rollback/idempotensi, susunan sejarah dan kawalan helper ujian masih terpakai. Tiada perubahan seni bina atau production readiness didakwa.
+
+## Pemulihan konfigurasi persendirian
+
+Salinan public `gas-admin/Code.gs` menggunakan `ADMIN_CONFIG.databaseId = 'REPLACE_WITH_DEV_SPREADSHEET_ID'` dan `ADMIN_CONFIG.adminEmail = 'admin@example.invalid'`. Hanya dua nilai ini diganti; lima fail lain sama byte-for-byte dengan ZIP.
+
+Jika pemulihan GAS diperlukan dalam tugasan akan datang, ambil nilai sebenar daripada ZIP asal/config pemilik yang disimpan persendirian. Dalam editor **projek GAS Admin yang betul**, pulihkan dua medan ADMIN_CONFIG itu kepada database DEV serta akaun admin yang dibenarkan. Semak ID projek, akses database/folder dan source sebelum sebarang salinan kod. Jangan gabungkan gas/ dengan gas-admin/ kerana kedua-duanya mempunyai doGet/Code.gs/manifest sendiri. Jangan commit nilai dipulihkan atau credentials ke GitHub. Arahan ini hanya dokumentasi pemulihan; tiada pemulihan, push GAS atau deployment dilakukan dalam checkpoint ini.
+
+## Checkpoint terdahulu — Admin Fasa 5.0C
 
 Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0C.zip`. Checkpoint ini menyambung Fasa 5.0B (`2dee9bf`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 
