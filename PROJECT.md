@@ -2,7 +2,48 @@
 
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
-## Status terkini — checkpoint Admin Fasa 4.3
+## Status terkini — checkpoint Admin Fasa 4.4
+
+Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.4.4.zip`. Checkpoint ini menyambung Fasa 4.3 (`9d74856`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
+
+Fasa 4.4 menambah `AdminHistoryService.gs` dan butang Sejarah Tindakan pada dashboard. Backend menyemak admin, ID aduan, database DEV serta kewujudan aduan, kemudian membaca rekod berkaitan dalam TINDAKAN. Paparan menunjukkan tarikh, status asal/baharu, pihak bertanggungjawab, catatan dan tarikh sasaran; butang tunjuk/sembunyi sejarah tersedia.
+
+**Ujian yang dilaporkan pemilik:** backend berjaya membaca dua rekod sejarah; paparan dashboard serta regresi asas gambar, Rekod Tindakan dan tunjuk/sembunyi berjaya. Sesi penyimpanan ini tidak mengulang ujian GAS atau operasi data. Penggunaan production belum diuji.
+
+**Semakan sesi ini:** sintaks empat fail GS secara individu/gabungan, JavaScript HTML, struktur tag HTML dan manifest lulus. Source dibandingkan dengan ZIP dan remote; hanya fail sejarah baharu serta HTML berubah. Emel admin dan ID database disamarkan dengan placeholder checkpoint terdahulu. Tiada GAS asal, deployment, Sheets atau Drive diubah.
+
+Sejarah dipaparkan terbaharu dahulu berdasarkan baris rekod yang ditambah secara kronologi: kod menggunakan `.reverse()`, bukan pengisihan timestamp. Jika baris TINDAKAN disusun semula, susunan paparan mungkin tidak mengikut tarikh. Source dikekalkan; batas ini direkodkan untuk penilaian seterusnya.
+
+## Prinsip dan objektif projek
+
+| Prinsip | Panduan pelaksanaan |
+| --- | --- |
+| **Zero Cost First** | Utamakan sumber sedia ada dan pilihan tanpa kos tambahan; semak quota, storan dan keperluan sebenar sebelum perkhidmatan berbayar. Ini keutamaan reka bentuk, bukan jaminan kos sifar tanpa had. |
+| **Mobile First** | Utamakan borang dan dashboard yang mudah digunakan pada telefon; butang, teks dan aliran mesti jelas pada skrin kecil. |
+| **User Friendly** | Gunakan Bahasa Melayu ringkas, langkah minimum dan maklum balas jelas untuk staf dengan literasi digital rendah. |
+| **Sustainable** | Kekalkan kod/dokumentasi yang mudah diselenggara, konfigurasi persendirian, sejarah versi, backup dan panduan pemulihan serta serahan tugas. |
+
+Objektif projek ialah PWA dengan ikon Home Screen, kesinambungan pentadbiran apabila pegawai bertukar, dan rekod penyelenggaraan berpusat yang boleh dijejaki. PWA/ikon Home Screen ialah objektif, bukan fungsi yang sudah dibuktikan dalam snapshot Admin ini. Rekod ADUAN dan TINDAKAN menjadi asas rekod berpusat; panduan backup dan serahan pentadbiran perlu terus dibangunkan.
+
+## Pemulihan konfigurasi checkpoint Fasa 4.4
+
+Dalam `gas-admin/Code.gs` salinan GitHub sahaja, `ADMIN_CONFIG.databaseId` ialah `REPLACE_WITH_DEV_SPREADSHEET_ID` dan `ADMIN_CONFIG.adminEmail` ialah `admin@example.invalid`. Pendekatan ini sama dengan Fasa 4.2/4.3. Lima fail lain dikekalkan byte-for-byte daripada ZIP; tiada perubahan logik tambahan dibuat.
+
+Untuk pemulihan kemudian, ambil dua nilai sebenar daripada ZIP asal yang disimpan persendirian atau konfigurasi GAS pemilik, dan gantikan placeholder dalam salinan kerja persendirian. Sahkan database DEV serta akaun admin yang betul. Jangan commit nilai dipulihkan atau data aduan ke repository public. Tugas ini tidak memulihkan atau mengubah konfigurasi GAS sebenar.
+
+## Semakan diff dan batas Fasa 4.4
+
+- `gas-admin/AdminHistoryService.gs`: fail baharu, membaca sejarah sahaja; mengembalikan tarikh, admin, status, catatan, pihak bertanggungjawab dan tarikh sasaran. Data sebenar dibaca ketika aplikasi dijalankan, bukan disimpan dalam kod GitHub.
+- `gas-admin/AdminDashboard.html`: tambahan pemuatan sejarah, keadaan kosong/ralat dan butang tunjuk/sembunyi; teks dinamik menggunakan textContent.
+- `Code.gs`, `AdminActionService.gs`, `AdminImageService.gs` dan `appsscript.json`: hash selepas redaksi sama dengan remote Fasa 4.3.
+- `gas/`, AGENTS.md dan dokumentasi checkpoint terdahulu tidak diubah.
+- Manifest kekal V8, Asia/Singapore, dependencies kosong, USER_ACCESSING / MYSELF; ini bukan pengesahan deployment aktif.
+- Log ujian `testAdminActionHistory()` boleh mengandungi emel admin dan catatan sebenar ketika dijalankan. Log/data tersebut tidak disalin atau dijalankan dalam tugas ini.
+- Kaedah reverse mengandaikan baris ditambah mengikut masa. Sejarah belum diisih timestamp secara khusus; jangan mendakwa ia tahan terhadap penyusunan semula baris.
+- Batas Fasa 4.3 tentang rollback, idempotensi dan fungsi ujian yang menulis data masih terpakai. Ia tidak diubah dalam checkpoint ini.
+- Tiada production readiness atau keputusan ujian runtime baharu didakwa. Tunggu arahan pemilik sebelum pembangunan/deployment seterusnya.
+
+## Checkpoint terdahulu — Admin Fasa 4.3
 
 Snapshot lima fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.4.3.zip` pada 13 Oktober 2026. Folder `gas-admin/` dikemas kini daripada checkpoint Fasa 4.2; folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 

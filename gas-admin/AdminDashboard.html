@@ -345,6 +345,94 @@ function loadComplaintImages(complaintId, card, button) {
 }
 
 /**
+ * Fasa 4.4B - Paparan Sejarah Tindakan.
+ * Membaca rekod sahaja. Tiada perubahan database.
+ */
+function loadActionHistory(complaintId, card, button) {
+  const existing = card.querySelector('.action-history');
+
+  // Jika sejarah sedang dipaparkan, sembunyikan.
+  if (existing) {
+    existing.remove();
+    button.textContent = 'Sejarah Tindakan';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Memuatkan sejarah...';
+
+  google.script.run
+    .withSuccessHandler(function(history) {
+      button.disabled = false;
+
+      const container = document.createElement('div');
+      container.className = 'action-history';
+      container.style.marginTop = '15px';
+      container.style.padding = '15px';
+      container.style.background = '#F5F7FA';
+      container.style.borderRadius = '10px';
+
+      const heading = document.createElement('h4');
+      heading.textContent = 'Sejarah Tindakan';
+      container.appendChild(heading);
+
+      if (!history.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'Belum ada rekod tindakan.';
+        container.appendChild(empty);
+      }
+
+      history.forEach(function(action) {
+        const entry = document.createElement('div');
+        entry.style.padding = '12px 0';
+        entry.style.borderBottom = '1px solid #ddd';
+
+        const date = document.createElement('strong');
+        date.textContent = action.date || '-';
+
+        const status = document.createElement('p');
+        status.textContent =
+          (action.previousStatus || '-') +
+          ' → ' +
+          (action.newStatus || '-');
+
+        const assignee = document.createElement('p');
+        assignee.textContent =
+          'Tanggungjawab: ' + (action.assignee || '-');
+
+        const note = document.createElement('p');
+        note.textContent =
+          'Catatan: ' + (action.note || '-');
+
+        const target = document.createElement('p');
+        target.textContent =
+          'Tarikh Sasaran: ' + (action.targetDate || '-');
+
+        entry.appendChild(date);
+        entry.appendChild(status);
+        entry.appendChild(assignee);
+        entry.appendChild(note);
+        entry.appendChild(target);
+
+        container.appendChild(entry);
+      });
+
+      card.appendChild(container);
+      button.textContent = 'Sembunyikan Sejarah';
+    })
+    .withFailureHandler(function(error) {
+      button.disabled = false;
+      button.textContent = 'Sejarah Tindakan';
+
+      alert(
+        'Gagal memuatkan sejarah: ' +
+        (error.message || 'Ralat sistem')
+      );
+    })
+    .getAdminActionHistory(complaintId);
+}
+
+/**
  * Paparkan atau sembunyikan borang tindakan.
  * Belum menyimpan data.
  */
@@ -669,6 +757,29 @@ function openActionForm(item, card, button) {
         );
 
         card.appendChild(actionBtn);
+
+        // Butang Sejarah Tindakan.
+        const historyBtn =
+          document.createElement('button');
+
+        historyBtn.type = 'button';
+        historyBtn.textContent = 'Sejarah Tindakan';
+
+        historyBtn.style.marginTop = '14px';
+        historyBtn.style.marginLeft = '8px';
+
+        historyBtn.addEventListener(
+          'click',
+          function() {
+            loadActionHistory(
+              item.id,
+              card,
+              historyBtn
+            );
+          }
+        );
+
+        card.appendChild(historyBtn);
 
         list.appendChild(card);
 
