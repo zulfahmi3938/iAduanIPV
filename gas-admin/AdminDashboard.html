@@ -199,6 +199,18 @@
         <strong id="doneCount">-</strong>
         <span>Selesai</span>
       </div>
+
+<!-- Fasa 5.0C: Statistik aduan tertunggak -->
+<div class="stat">
+  <strong id="pendingCount">–</strong>
+  <span>Belum Selesai</span>
+</div>
+
+<div class="stat">
+  <strong id="oldestPending">–</strong>
+  <span>Aduan Tertua Belum Selesai</span>
+</div>
+
     </div>
 
     <div class="toolbar">
@@ -336,8 +348,11 @@
             .textContent = data.counts.SELESAI || 0;
 
 
+
 populateYearFilter();
+updatePendingStats();
 renderComplaints();
+
 
         })
         .withFailureHandler(function(error) {
@@ -349,6 +364,126 @@ renderComplaints();
         })
         .getAdminComplaints();
     }
+
+/**
+ * Fasa 5.0C - Statistik aduan belum selesai.
+ * Menggunakan tarikh aduan mengikut waktu Malaysia.
+ * Tidak mengubah data Google Sheets.
+ */
+function updatePendingStats() {
+  const activeStatuses = [
+    'BAHARU',
+    'DALAM_SEMAKAN',
+    'DALAM_TINDAKAN'
+  ];
+
+  const pending = allComplaints.filter(function(item) {
+    return activeStatuses.includes(item.status);
+  });
+
+  // Jumlah aduan aktif termasuk rekod bertarikh tidak sah.
+  document.getElementById('pendingCount')
+    .textContent = pending.length;
+
+  // Tarikh hari ini mengikut waktu Malaysia.
+
+const dateParts = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Kuala_Lumpur',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+}).formatToParts(new Date());
+
+const dateValues = {};
+dateParts.forEach(function(part) {
+  if (part.type !== 'literal') {
+    dateValues[part.type] = part.value;
+  }
+});
+
+const todayParts = [
+  '',
+  dateValues.year,
+  dateValues.month,
+  dateValues.day
+];
+
+
+  const oldestElement =
+    document.getElementById('oldestPending');
+
+
+if (
+  !dateValues.year ||
+  !dateValues.month ||
+  !dateValues.day
+) {
+
+    oldestElement.textContent = 'Semak tarikh';
+    return;
+  }
+
+  const todayUTC = Date.UTC(
+    Number(todayParts[1]),
+    Number(todayParts[2]) - 1,
+    Number(todayParts[3])
+  );
+
+  let oldestDays = null;
+  let invalidDates = 0;
+
+  pending.forEach(function(item) {
+    const match = String(item.date || '').match(
+      /^(\d{2})\/(\d{2})\/(\d{4})(?:\s|$)/
+    );
+
+    if (!match) {
+      invalidDates++;
+      return;
+    }
+
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+
+    const complaintUTC = Date.UTC(year, month - 1, day);
+    const check = new Date(complaintUTC);
+
+    // Elakkan tarikh tidak sah seperti 31 Februari.
+    if (
+      check.getUTCFullYear() !== year ||
+      check.getUTCMonth() !== month - 1 ||
+      check.getUTCDate() !== day
+    ) {
+      invalidDates++;
+      return;
+    }
+
+    const days = Math.floor(
+      (todayUTC - complaintUTC) / 86400000
+    );
+
+    // Aduan bertarikh masa depan perlu disemak.
+    if (days < 0) {
+      invalidDates++;
+      return;
+    }
+
+    if (oldestDays === null || days > oldestDays) {
+      oldestDays = days;
+    }
+  });
+
+  if (invalidDates > 0) {
+    oldestElement.textContent = 'Semak tarikh';
+    oldestElement.title =
+      invalidDates + ' aduan belum selesai mempunyai tarikh tidak sah.';
+  } else {
+    oldestElement.textContent =
+      oldestDays === null ? '0 hari' : oldestDays + ' hari';
+    oldestElement.removeAttribute('title');
+  }
+}
 
 /**
  * Fasa 5.0B - Jana pilihan tahun secara automatik.

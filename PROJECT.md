@@ -2,7 +2,41 @@
 
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
-## Status terkini — checkpoint Admin Fasa 5.0B
+## Status terkini — checkpoint Admin Fasa 5.0C
+
+Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0C.zip`. Checkpoint ini menyambung Fasa 5.0B (`2dee9bf`) pada branch `main`. Folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
+
+Dashboard menambah kad `pendingCount` (jumlah aduan belum selesai), `oldestPending` (umur aduan tertua belum selesai) dan fungsi `updatePendingStats()`. Status aktif ialah BAHARU, DALAM_SEMAKAN dan DALAM_TINDAKAN; SELESAI dan DITOLAK tidak dikira aktif. Statistik menggunakan `allComplaints`, bukan senarai yang ditapis carian/status/bulan/tahun.
+
+Pengiraan tarikh Malaysia menggunakan `Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kuala_Lumpur', ... }).formatToParts()` untuk mendapatkan tahun/bulan/hari tanpa mengandaikan susunan teks locale. Umur dikira sebagai perbezaan hari kalendar Malaysia menggunakan Date.UTC, bukan tempoh 24 jam tepat. Kod memeriksa bentuk tarikh, kesahihan hari/bulan/tahun dan tarikh pada hari masa depan.
+
+**Ujian paparan DEV dilaporkan pemilik:** pada 14 Oktober 2026, 2 aduan belum selesai dan aduan tertua 1 hari. Enam ujian regresi — penapis Oktober 2026, carian bersama status, gambar, borang tindakan, sejarah tindakan dan Muat Semula — dilaporkan lulus.
+
+**Semakan sesi checkpoint:** sintaks GS/JavaScript dan deklarasi gabungan, struktur HTML/tag/ID serta manifest lulus. Sembilan semakan terasing dengan kod dashboard sebenar, DOM simulasi, data rekaan dan jam tetap lulus untuk sempadan Malaysia, pengelasan status, tarikh tidak sah/masa depan, data kosong, perubahan status dan statistik keseluruhan ketika senarai ditapis. Tiada fungsi GAS, ujian Google atau operasi data dijalankan.
+
+Kes tarikh tidak sah, tarikh masa depan dan perubahan status **masih memerlukan ujian khusus pada DEV**. Ujian simulasi tidak menutup keperluan tersebut. Penggunaan production belum diuji. Statistik dashboard ialah statistik keseluruhan rekod dimuatkan, bukan statistik khusus bulan laporan.
+
+Diff dengan remote Fasa 5.0B menunjukkan hanya `gas-admin/AdminDashboard.html` berubah; lima fail Admin lain sama selepas redaksi dua nilai konfigurasi. Emel admin dan ID database sebenar tidak diterbitkan. GAS asal, deployment, Sheets dan Drive tidak diubah; tiada fungsi tambahan dicipta dalam tugas checkpoint.
+
+## Batas pemantauan belum selesai Fasa 5.0C
+
+- Aduan aktif bertarikh tidak sah atau masa depan masih termasuk dalam pendingCount, supaya rekod itu tidak hilang daripada jumlah aktif.
+- Jika satu atau lebih aduan aktif bermasalah tarikh, oldestPending memaparkan **Semak tarikh**, bukan umur yang mungkin mengelirukan. Tooltip menunjukkan bilangan rekod yang perlu disemak.
+- Jika tiada aduan aktif, paparan umur ialah **0 hari**. Jika semua tarikh aktif sah, umur maksimum dipaparkan; masa/jam dalam tarikh aduan tidak digunakan untuk umur hari.
+- Tarikh masa depan yang dikesan ialah hari kalendar selepas hari ini di Malaysia. Jam masa depan dalam hari yang sama tidak dikesan oleh pengiraan umur berasaskan hari ini.
+- Kad dikemas kini apabila data dimuatkan/Muat Semula; ia tidak dikira semula hanya kerana penapis senarai berubah. Carian dan penapis tidak mengubah jumlah keseluruhan.
+- Validasi kalendar ini ditambah pada updatePendingStats sahaja. Regex penapis bulan/tahun terdahulu masih menyemak bentuk tarikh, dan validator laporan rasmi masih belum dibina.
+- Paparan 2 aduan/1 hari ialah hasil DEV yang dilaporkan pada 14 Oktober 2026, bukan angka yang kekal setiap hari atau bukti data semasa dalam sesi ini.
+- Ujian khusus DEV untuk data tidak sah, masa depan dan peralihan status masih diperlukan, termasuk pemulihan Semak tarikh selepas data diperbetulkan. Penggunaan production belum diuji.
+- Prinsip Zero Cost First, Mobile First, User Friendly dan Sustainable, sasaran laporan bulanan lengkap/A4/Arial 12 pt, serta beza statistik keseluruhan berbanding statistik bulan kekal seperti seksyen projek terdahulu.
+
+## Konfigurasi dan had tugas Fasa 5.0C
+
+Salinan GitHub mengekalkan `ADMIN_CONFIG.databaseId = 'REPLACE_WITH_DEV_SPREADSHEET_ID'` dan `ADMIN_CONFIG.adminEmail = 'admin@example.invalid'`. Pulihkan dua nilai daripada ZIP asal atau konfigurasi pemilik dalam salinan kerja persendirian apabila diperlukan; jangan commit nilai sebenar. Lima fail selain Code.gs dikekalkan byte-for-byte daripada ZIP; tiada perubahan logik selain kod yang dibekalkan pemilik.
+
+Tugas semasa hanya menyimpan snapshot dan dokumentasi. Ia tidak memulihkan konfigurasi, mengubah GAS/deployment/data, membina validator laporan atau membaiki batas di luar skop. Tunggu arahan pemilik sebelum langkah berikutnya.
+
+## Checkpoint terdahulu — Admin Fasa 5.0B
 
 Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0B.zip`. Checkpoint ini menyambung Fasa 5.0A (`930a153`) pada branch `main`; folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 
