@@ -63,6 +63,7 @@ function validateAdminAction_(payload) {
   }
 
   const complaintId = actionText_(payload.complaintId);
+  const actionId = actionText_(payload.actionId);
   const status = actionText_(payload.status);
   const assignee = actionText_(payload.assignee);
   const note = actionText_(payload.note);
@@ -94,13 +95,23 @@ function validateAdminAction_(payload) {
     throw new Error('Format tarikh sasaran tidak sah.');
   }
 
-  return {
-    complaintId: complaintId,
-    status: status,
-    assignee: assignee,
-    note: note,
-    targetDate: targetDate
-  };
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+if (!uuidPattern.test(actionId)) {
+  throw new Error('ID permintaan tindakan tidak sah.');
+}
+
+
+return {
+  actionId: actionId,
+  complaintId: complaintId,
+  status: status,
+  assignee: assignee,
+  note: note,
+  targetDate: targetDate
+};
+
 }
 
 /**
@@ -112,6 +123,7 @@ function testAdminActionValidation() {
   requireAdmin_();
 
   const sample = {
+    actionId: Utilities.getUuid(),
     complaintId: 'IPV-2026-0002',
     status: 'DALAM_TINDAKAN',
     assignee: 'Kontraktor Penyelenggaraan',
@@ -125,6 +137,7 @@ function testAdminActionValidation() {
 
   try {
     validateAdminAction_({
+      actionId: Utilities.getUuid(),
       complaintId: 'IPV-2026-0002',
       status: 'DALAM_TINDAKAN',
       assignee: 're',
@@ -169,6 +182,39 @@ function safeActionText_(value) {
   return text;
 }
 
+/**
+ * Fasa 6.1A - Semak ID tindakan yang telah digunakan.
+ * READ ONLY: Tidak mengubah Google Sheets.
+ *
+ * Dipanggil oleh saveAdminAction() selepas
+ * ScriptLock berjaya diperoleh.
+ */
+function assertActionIdNotUsed_(tindakanSheet, actionId) {
+  const lastRow = tindakanSheet.getLastRow();
+
+  if (lastRow < 2) {
+    return;
+  }
+
+  const ids = tindakanSheet
+    .getRange(2, 1, lastRow - 1, 1)
+    .getValues();
+
+  const normalizedId = actionText_(actionId).toLowerCase();
+
+  const alreadyExists = ids.some(function(row) {
+    return actionText_(row[0]).toLowerCase() === normalizedId;
+  });
+
+  if (alreadyExists) {
+    throw new Error(
+      'ID permintaan ini sudah direkodkan. ' +
+      'Tiada tindakan baharu disimpan. ' +
+      'Sila semak sejarah tindakan sebelum mencuba semula.'
+    );
+  }
+}
+
 function saveAdminAction(payload) {
   // Semak identiti pada backend.
   const adminEmail = requireAdmin_();
@@ -206,6 +252,9 @@ function saveAdminAction(payload) {
         'Tab database tidak lengkap.'
       );
     }
+    
+assertActionIdNotUsed_(tindakanSheet, input.actionId);
+
 
     const lastRow = aduanSheet.getLastRow();
 
@@ -245,8 +294,9 @@ function saveAdminAction(payload) {
     }
 
     const now = new Date();
+ 
+const actionId = input.actionId;
 
-    const actionId = Utilities.getUuid();
 
     // Sediakan rekod sejarah tindakan.
     const actionRow = [
@@ -379,6 +429,7 @@ function testAdminActionDryRun() {
   requireAdmin_();
 
   const input = validateAdminAction_({
+    actionId: Utilities.getUuid(),
     complaintId: 'IPV-2026-0002',
     status: 'DALAM_TINDAKAN',
     assignee: 'Kontraktor Penyelenggaraan',
@@ -450,6 +501,7 @@ function testAdminActionDryRun() {
  */
 function testSaveAdminActionOnce() {
   const result = saveAdminAction({
+    actionId: Utilities.getUuid(),
     complaintId: 'IPV-2026-0002',
     status: 'DALAM_TINDAKAN',
     assignee: 'Kontraktor Penyelenggaraan',
@@ -458,6 +510,218 @@ function testSaveAdminActionOnce() {
   });
 
   Logger.log(JSON.stringify(result, null, 2));
+
+  return result;
+}
+
+/**
+ * Fasa 6.1A - Ujian pengesanan ID pendua.
+ * READ ONLY: Tidak mengubah Google Sheets.
+ */
+function testActionDuplicateGuard() {
+  requireAdmin_();
+
+  const history = getAdminActionHistory('IPV-2026-0002');
+
+  if (!history.length) {
+    throw new Error('Tiada sejarah tindakan untuk ujian.');
+  }
+
+  const ss = SpreadsheetApp.openById(
+    ADMIN_CONFIG.databaseId
+  );
+
+  if (ss.getName() !== 'iADUAN_IPV_DATABASE_DEV') {
+    throw new Error('Database DEV tidak sepadan.');
+  }
+
+  const sheet = ss.getSheetByName('TINDAKAN');
+
+  if (!sheet) {
+    throw new Error('Tab TINDAKAN tidak ditemui.');
+  }
+
+  let duplicateRejected = false;
+
+  try {
+    assertActionIdNotUsed_(sheet, history[0].actionId);
+  } catch (error) {
+    if (error.message.includes('sudah direkodkan')) {
+      duplicateRejected = true;
+    } else {
+      throw error;
+    }
+  }
+
+  if (!duplicateRejected) {
+    throw new Error('ID pendua tidak ditolak.');
+  }
+
+  const newActionId = Utilities.getUuid();
+
+  assertActionIdNotUsed_(sheet, newActionId);
+
+  const result = {
+    success: true,
+    duplicateRejected: true,
+    newIdAccepted: true,
+    databaseModified: false
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+
+  return result;
+}
+
+/**
+ * Fasa 6.1A - Ujian integrasi idempotency DEV.
+ * PERHATIAN: Ujian ini akan mengubah data DEV.
+ * Gunakan UUID sama jika perlu menyemak semula ujian.
+ */
+
+function prepareDevIdempotencyTestId() {
+  requireAdmin_();
+
+  const propertyName = 'DEV_IDEMPOTENCY_TEST_ACTION_ID';
+  const properties = PropertiesService.getScriptProperties();
+
+  let actionId = properties.getProperty(propertyName);
+
+  if (!actionId) {
+    actionId = Utilities.getUuid();
+    properties.setProperty(propertyName, actionId);
+
+    Logger.log('UUID ujian baharu disediakan.');
+  } else {
+    Logger.log('UUID ujian sedia ada digunakan semula.');
+  }
+
+  Logger.log('ID ujian: ' + actionId);
+
+  return {
+    success: true,
+    actionId: actionId
+  };
+}
+
+/**
+ * Fasa 6.1A - Ujian integrasi idempotency.
+ * PERHATIAN: Menulis SATU tindakan ke database DEV.
+ * UUID kekal dalam Script Properties.
+ */
+function testActionIdempotencyIntegration() {
+  requireAdmin_();
+
+  const actionId = PropertiesService
+    .getScriptProperties()
+    .getProperty('DEV_IDEMPOTENCY_TEST_ACTION_ID');
+
+  if (!actionId) {
+    throw new Error('UUID ujian belum disediakan.');
+  }
+
+  const ss = SpreadsheetApp.openById(
+    ADMIN_CONFIG.databaseId
+  );
+
+  if (ss.getName() !== 'iADUAN_IPV_DATABASE_DEV') {
+    throw new Error('Database DEV tidak sepadan.');
+  }
+
+  const aduanSheet = ss.getSheetByName('ADUAN');
+  const tindakanSheet = ss.getSheetByName('TINDAKAN');
+
+  if (!aduanSheet || !tindakanSheet) {
+    throw new Error('Tab database tidak lengkap.');
+  }
+
+  const complaintId = 'IPV-2026-0002';
+
+  const ids = aduanSheet.getRange(
+    2, 1, aduanSheet.getLastRow() - 1, 1
+  ).getValues();
+
+  const index = ids.findIndex(function(row) {
+    return String(row[0]).trim() === complaintId;
+  });
+
+  if (index === -1) {
+    throw new Error('Aduan ujian tidak ditemui.');
+  }
+
+  const currentStatus = String(
+    aduanSheet.getRange(index + 2, 9).getValue()
+  ).trim();
+
+  if (currentStatus !== 'DALAM_SEMAKAN') {
+    throw new Error(
+      'Status awal berubah. Ujian dihentikan.'
+    );
+  }
+
+  if (tindakanSheet.getLastRow() !== 3) {
+    throw new Error(
+      'Jumlah sejarah bukan 2. Ujian dihentikan.'
+    );
+  }
+
+  assertActionIdNotUsed_(tindakanSheet, actionId);
+
+  const payload = {
+    actionId: actionId,
+    complaintId: complaintId,
+    status: 'DALAM_TINDAKAN',
+    assignee: 'Urus Setia IPV',
+    note: 'UJIAN FASA 6.1A - Pengesahan idempotency.',
+    targetDate: '2026-10-21'
+  };
+
+  // Panggilan pertama: simpan tindakan.
+  const first = saveAdminAction(payload);
+
+  if (!first || first.success !== true) {
+    throw new Error('Simpanan pertama gagal.');
+  }
+
+  // Panggilan kedua: UUID yang sama mesti ditolak.
+  let duplicateRejected = false;
+
+  try {
+    saveAdminAction(payload);
+  } catch (error) {
+    if (error.message.includes('sudah direkodkan')) {
+      duplicateRejected = true;
+    } else {
+      throw error;
+    }
+  }
+
+  const history = getAdminActionHistory(complaintId);
+
+  const finalStatus = String(
+    aduanSheet.getRange(index + 2, 9).getValue()
+  ).trim();
+
+  const passed =
+    duplicateRejected &&
+    history.length === 3 &&
+    finalStatus === 'DALAM_TINDAKAN';
+
+  const result = {
+    success: passed,
+    firstSaved: first.success,
+    duplicateRejected: duplicateRejected,
+    historyCount: history.length,
+    finalStatus: finalStatus
+  };
+
+  Logger.log(JSON.stringify(result, null, 2));
+
+  if (!passed) {
+    throw new Error(
+      'Ujian integrasi gagal. Semak data DEV.'
+    );
+  }
 
   return result;
 }

@@ -94,6 +94,62 @@ function getAdminActionHistory(complaintId) {
 }
 
 /**
+ * Fasa 6.1A - Semak kewujudan rekod tindakan.
+ * READ ONLY: Tidak mengubah Google Sheets.
+ */
+function checkAdminActionSaveStatus(actionId) {
+  requireAdmin_();
+
+  const id = String(actionId || '').trim();
+
+  // Terima UUID standard sahaja.
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  if (!uuidPattern.test(id)) {
+    throw new Error('ID tindakan tidak sah.');
+  }
+
+  const ss = SpreadsheetApp.openById(
+    ADMIN_CONFIG.databaseId
+  );
+
+  if (ss.getName() !== 'iADUAN_IPV_DATABASE_DEV') {
+    throw new Error('Database DEV tidak sepadan.');
+  }
+
+  const sheet = ss.getSheetByName('TINDAKAN');
+
+  if (!sheet) {
+    throw new Error('Tab TINDAKAN tidak ditemui.');
+  }
+
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return {
+      found: false,
+      actionId: id
+    };
+  }
+
+  const ids = sheet.getRange(
+    2, 1, lastRow - 1, 1
+  ).getValues();
+
+  const found = ids.some(function(row) {
+    return String(row[0] || '')
+      .trim()
+      .toLowerCase() === id.toLowerCase();
+  });
+
+  return {
+    found: found,
+    actionId: id
+  };
+}
+
+/**
  * Ujian bacaan sejarah.
  * Tiada operasi tulis.
  */
@@ -112,4 +168,88 @@ function testAdminActionHistory() {
   Logger.log(JSON.stringify(result, null, 2));
 
   return result;
+}
+
+/**
+ * Fasa 6.1A - Ujian ID tindakan yang wujud.
+ * READ ONLY: Tidak mengubah Google Sheets.
+ */
+function testActionSaveStatusFound() {
+  const history = getAdminActionHistory('IPV-2026-0002');
+
+  if (!history.length) {
+    throw new Error('Tiada rekod sejarah untuk ujian.');
+  }
+
+  const actionId = history[0].actionId;
+  const result = checkAdminActionSaveStatus(actionId);
+
+  if (!result.found) {
+    throw new Error('ID tindakan wujud tetapi tidak ditemui.');
+  }
+
+  Logger.log(JSON.stringify({
+    success: true,
+    found: result.found,
+    actionId: result.actionId
+  }, null, 2));
+
+  return result;
+}
+
+/**
+ * Fasa 6.1A - Ujian UUID yang tidak wujud.
+ * READ ONLY: Tidak mengubah Google Sheets.
+ */
+function testActionSaveStatusNotFound() {
+  const actionId = Utilities.getUuid();
+
+  const result = checkAdminActionSaveStatus(actionId);
+
+  if (result.found !== false) {
+    throw new Error(
+      'Ujian gagal: UUID baharu didapati telah wujud.'
+    );
+  }
+
+  Logger.log(JSON.stringify({
+    success: true,
+    found: result.found,
+    actionId: result.actionId
+  }, null, 2));
+
+  return result;
+}
+
+/**
+ * Fasa 6.1A - Ujian ID tindakan tidak sah.
+ * READ ONLY: Tidak mengubah Google Sheets.
+ */
+function testActionSaveStatusInvalid() {
+  let rejected = false;
+
+  try {
+    checkAdminActionSaveStatus('BUKAN-UUID');
+  } catch (error) {
+    if (error.message === 'ID tindakan tidak sah.') {
+      rejected = true;
+    } else {
+      throw error;
+    }
+  }
+
+  if (!rejected) {
+    throw new Error(
+      'Ujian gagal: ID tidak sah tidak ditolak.'
+    );
+  }
+
+  Logger.log(
+    'LULUS: ID tindakan tidak sah berjaya ditolak.'
+  );
+
+  return {
+    success: true,
+    invalidIdRejected: true
+  };
 }

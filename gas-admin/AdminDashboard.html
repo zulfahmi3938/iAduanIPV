@@ -912,8 +912,75 @@ function openActionForm(item, card, button) {
   notice.setAttribute('role', 'status');
   container.appendChild(notice);
 
+  // Fasa 6.1A-B: Butang semakan status simpanan.
+  const checkSaveBtn = document.createElement('button');
+
+  checkSaveBtn.type = 'button';
+  checkSaveBtn.textContent = 'Semak Status Simpanan';
+  checkSaveBtn.hidden = true;
+
+  checkSaveBtn.style.marginTop = '10px';
+  checkSaveBtn.style.padding = '10px 14px';
+  checkSaveBtn.style.background = '#FFFFFF';
+  checkSaveBtn.style.color = '#033662';
+  checkSaveBtn.style.border = '1px solid #033662';
+  checkSaveBtn.style.borderRadius = '8px';
+  checkSaveBtn.style.fontSize = '14px';
+  checkSaveBtn.style.fontWeight = '600';
+  checkSaveBtn.style.cursor = 'pointer';
+
+  container.appendChild(checkSaveBtn);
+
   // Elakkan klik berulang semasa menyimpan.
   let isSaving = false;
+  
+let pendingActionId = null;
+
+
+
+checkSaveBtn.addEventListener('click', function() {
+  if (!pendingActionId) {
+    notice.textContent = 'Tiada ID permintaan untuk disemak.';
+    notice.style.color = '#b91c1c';
+    return;
+  }
+
+  checkSaveBtn.disabled = true;
+  checkSaveBtn.textContent = 'Sedang menyemak...';
+  notice.textContent = 'Menyemak rekod tindakan...';
+  notice.style.color = '#64748b';
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      checkSaveBtn.disabled = false;
+      checkSaveBtn.textContent = 'Semak Status Simpanan';
+
+      if (result && result.found === true) {
+        notice.textContent =
+          'ID tindakan ditemui dalam sejarah. ' +
+          'Sila semak sejarah tindakan dan status aduan.';
+        notice.style.color = '#15803d';
+ 
+      } else {
+        notice.textContent =
+          'ID tindakan belum ditemui. ' +
+          'Status simpanan masih belum pasti. ' +
+          'Jangan hantar semula secara automatik.';
+        notice.style.color = '#b91c1c';
+      }
+    })
+    .withFailureHandler(function(error) {
+      checkSaveBtn.disabled = false;
+      checkSaveBtn.textContent = 'Semak Status Simpanan';
+
+      notice.textContent =
+        'Semakan gagal: ' +
+        (error.message || 'Ralat sistem');
+      notice.style.color = '#b91c1c';
+    })
+    .checkAdminActionSaveStatus(pendingActionId);
+});
+
 
   saveBtn.addEventListener('click', function() {
     if (isSaving) return;
@@ -952,6 +1019,24 @@ function openActionForm(item, card, button) {
       return;
     }
 
+  // Fasa 6.1A: ID unik untuk permintaan tindakan.
+  if (!pendingActionId) {
+    if (
+      !window.crypto ||
+      typeof window.crypto.randomUUID !== 'function'
+    ) {
+      notice.textContent =
+        'Pelayar tidak menyokong penjanaan ID selamat. ' +
+        'Tindakan tidak dihantar.';
+      notice.style.color = '#b91c1c';
+      return;
+    }
+
+    pendingActionId = window.crypto.randomUUID();
+  }
+
+  payload.actionId = pendingActionId;
+
     isSaving = true;
     saveBtn.disabled = true;
     button.disabled = true;
@@ -968,6 +1053,7 @@ function openActionForm(item, card, button) {
             'Semak Google Sheets sebelum cuba lagi.';
           notice.style.color = '#b91c1c';
           saveBtn.textContent = 'Semak Rekod';
+          checkSaveBtn.hidden = false;
           return;
         }
 
@@ -989,6 +1075,8 @@ function openActionForm(item, card, button) {
 
         notice.style.color = '#b91c1c';
         saveBtn.textContent = 'Semak Rekod';
+        checkSaveBtn.hidden = false;
+
 
         // Kekalkan butang tidak aktif
         // untuk elakkan rekod berganda.

@@ -4,7 +4,68 @@ Sistem pengurusan aduan kerosakan dan penyelenggaraan untuk Institut Pengurusan 
 
 Projek ini bertujuan memudahkan warga IPV menghantar aduan serta membantu pentadbir merekod, memantau dan mengemas kini tindakan penyelenggaraan.
 
-## Status terkini — checkpoint Admin Fasa 5.0D: Laporan Bulanan Pengarah IPV
+## Status terkini — checkpoint Admin Fasa 6.1A: Pencegahan Rekod Tindakan Berganda
+
+Pada 15 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.6.1A.zip`. Branch main disahkan pada `9d4bde6` sebelum penyediaan checkpoint ini. Snapshot disimpan dalam gas-admin/; folder gas/ aplikasi staf dikekalkan tanpa perubahan.
+
+Frontend menjana actionId dengan `window.crypto.randomUUID()` selepas input dan pengesahan pengguna lulus. UUID disimpan sebagai pendingActionId dalam memori borang dan disertakan dalam payload. Backend validateAdminAction_ memeriksa format UUID, dan saveAdminAction memanggil assertActionIdNotUsed_ **selepas ScriptLock diperoleh dan sebelum menulis sejarah**. Pengesanan ID tidak membezakan huruf besar/kecil. UUID daripada permintaan digunakan sebagai ID rekod, menggantikan penjanaan baharu semasa save.
+
+Endpoint baca sahaja `checkAdminActionSaveStatus()` mengesahkan admin, UUID dan database DEV sebelum membaca kolum ID TINDAKAN. Butang **Semak Status Simpanan** muncul apabila respons simpanan tidak dapat dipastikan; ia mengendalikan found:true, found:false dan ralat. Handler semakan tidak lagi memanggil loadComplaints, supaya borang serta mesej semakan tidak hilang. Tiada penghantaran semula automatik; simpan kekal dikunci apabila hasil belum pasti.
+
+Audit sintaks GS/JavaScript, deklarasi gabungan, HTML/ID dan manifest lulus. Lima panggilan google.script.run berpadanan dengan fungsi backend. window.testCheckSaveStatus sudah tiada. Dua puluh semakan terasing (12 backend pure/baca sahaja bermock dan 8 frontend bermock) lulus tanpa memanggil operasi Google atau fungsi ujian simpanan. Semakan ini bukan bukti transaksi atomik atau ujian concurrency sebenar.
+
+Maklumat ujian DEV dan batasan di bawah direkodkan daripada laporan pemilik; ujian tulis tidak diulang dalam sesi checkpoint. Tiada isu kritikal yang dikenal pasti dalam skop audit ini. Sistem belum diisytiharkan production-ready. Emel admin dan ID database salinan GitHub kekal disamarkan.
+
+## Keputusan DEV Fasa 6.1A — dilaporkan pemilik
+
+| Perkara | Keputusan dilaporkan |
+| --- | --- |
+| Validasi UUID | Lulus |
+| ID tindakan wujud dan tidak wujud | Lulus |
+| Pengesanan UUID pendua | Lulus |
+| Integrasi penyimpanan DEV | Lulus; simpanan pertama berjaya dan penghantaran kedua dengan UUID sama ditolak |
+| Bilangan sejarah | Bertambah daripada 2 kepada 3 sahaja |
+| Aduan ujian | IPV-2026-0002 berubah kepada DALAM_TINDAKAN |
+| Handler Semak Status Simpanan | found:true dan found:false lulus |
+| Borang hilang selepas semakan | Diselesaikan dengan membuang loadComplaints daripada handler semakan; borang dikekalkan |
+
+Ini keputusan DEV yang dilaporkan pemilik, bukan ujian simpanan sesi ini. Tiada kandungan rekod aduan, log sebenar atau nilai Script Properties disalin ke GitHub.
+
+## Had idempotensi dan semakan status Fasa 6.1A
+
+- pendingActionId berada dalam closure/memori borang sahaja. Refresh halaman, Muat Semula yang membina semula senarai atau kehilangan borang tidak memulihkan ID itu; penghantaran baharu boleh mendapat UUID baharu.
+- Guard menolak UUID yang sudah ada; ia bukan mekanisme retry yang memulangkan hasil asal. Pengguna perlu menyemak sejarah dan status sebelum mencuba lagi apabila hasil tidak pasti.
+- found:true membuktikan kewujudan ID dalam sejarah pada masa bacaan, bukan pengesahan atomik bahawa semua medan ADUAN selesai dikemas kini. Endpoint semakan tidak memegang lock, dan proses simpanan/rollback boleh sedang berjalan. found:false juga tidak membuktikan operasi tulis yang sedang berjalan sudah gagal.
+- Simpanan pendua telah diuji secara berurutan oleh pemilik. LockService melindungi aliran semakan/tulis dalam projek GAS yang sama, tetapi bukan transaksi atomik merentas ADUAN/TINDAKAN, projek berasingan, editor Sheets atau semua situasi dua tab. Ujian concurrency sebenar belum dilakukan.
+- Semakan ID mengembalikan found/actionId sahaja dan tidak menyemak kesamaan payload atau kaitan aduan melalui parameter tambahan. UUID ialah pengecam permintaan, bukan bukti identiti.
+- Laluan utama kekal memanggil requireAdmin_ dan memeriksa database iADUAN_IPV_DATABASE_DEV. Manifest kekal V8, Asia/Singapore, USER_ACCESSING / MYSELF; deployment aktif tidak diperiksa.
+- Semak Status Simpanan mengekalkan borang kerana tiada loadComplaints dalam handler itu. Handler simpanan berjaya yang biasa masih memuat semula senarai seperti sebelum ini.
+- Pelayar tanpa crypto.randomUUID diberi mesej ralat dan tidak menghantar tindakan. Keserasian pelayar sebenar selain ujian DEV pemilik belum disahkan.
+- Penggunaan production belum diluluskan. Batas rollback, backup, laporan dan pengiraan sejarah checkpoint terdahulu masih terpakai.
+
+## Fungsi ujian backend yang masih perlu diasingkan sebelum production
+
+Fungsi berikut **dikekalkan** sebagai sebahagian snapshot ZIP, bukan dipadam secara senyap. Tiada satu pun dijalankan dalam sesi ini. Sebelum production, asingkan ke projek/sumber ujian atau keluarkan daripada permukaan panggilan aplikasi melalui tugasan khusus yang dipersetujui.
+
+| Fungsi | Kesan / tindakan yang diperlukan |
+| --- | --- |
+| testSaveAdminActionOnce | Menulis tindakan DEV dengan UUID baharu setiap panggilan; nama Once tidak menguatkuasakan sekali sahaja |
+| testActionIdempotencyIntegration | Menulis tindakan pertama melalui saveAdminAction kemudian cuba UUID sama; mempunyai prasyarat status/bilangan sejarah, bukan ujian selamat dijalankan sewenang-wenangnya |
+| prepareDevIdempotencyTestId | Menjana dan menyimpan UUID dalam Script Properties DEV_IDEMPOTENCY_TEST_ACTION_ID jika belum ada; tidak read-only |
+| testAdminActionValidation, testAdminActionDryRun, testActionDuplicateGuard | Validasi/bacaan DEV; asingkan helper pembangunan, kekalkan batas akses |
+| testActionSaveStatusFound, testActionSaveStatusNotFound, testActionSaveStatusInvalid | Ujian endpoint baca sahaja; asingkan sebelum production |
+| testAdminActionHistory, testAdminComplaints, testAdminImageAccess | Boleh membaca/log sejarah, aduan atau metadata gambar sebenar apabila dijalankan; jangan menerbitkan output sebenar |
+| testAdminDatabaseConnection, testAdminIdentity | Pemeriksaan konfigurasi/akaun; testAdminDatabaseConnection tidak memanggil requireAdmin_ secara langsung dan patut diasingkan atau dikawal sebelum peluasan akses |
+
+window.testCheckSaveStatus telah dibuang daripada frontend; fungsi semakan sebenar dan butangnya dikekalkan. Fungsi ujian yang membina payload tindakan kini menyertakan actionId. Penyingkiran/penamaan semula helper backend belum dibuat kerana tugas semasa ialah checkpoint dan audit.
+
+## Sanitasi dan skop fail Fasa 6.1A
+
+Hanya dua nilai dalam Code.gs salinan GitHub disamarkan: ADMIN_CONFIG.databaseId = REPLACE_WITH_DEV_SPREADSHEET_ID dan ADMIN_CONFIG.adminEmail = admin@example.invalid. Untuk pemulihan kemudian, ambil nilai sebenar daripada ZIP/config pemilik yang disimpan persendirian dan pulihkan dalam salinan kerja projek GAS Admin yang betul apabila dibenarkan. Jangan commit nilai sebenar. Snapshot ini tidak memulihkan atau menukar konfigurasi GAS.
+
+Diff source dengan main Fasa 5.0D: AdminActionService.gs, AdminHistoryService.gs dan AdminDashboard.html berubah. Code.gs, AdminImageService.gs dan appsscript.json sama selepas sanitasi. Folder gas/, AGENTS.md dan fail lain dikekalkan. Tiada dependency, perkhidmatan berbayar atau fungsi baharu di luar ZIP ditambah. Prinsip Zero Cost First, Mobile First, User Friendly dan Sustainable kekal.
+
+## Checkpoint terdahulu — Admin Fasa 5.0D: Laporan Bulanan Pengarah IPV
 
 Pada 14 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.5.0D.zip`. Checkpoint ini menyambung Fasa 5.0C (`8bbc938`) pada branch `main`; folder aplikasi staf `gas/` dikekalkan tanpa perubahan.
 
@@ -207,7 +268,7 @@ git clone https://github.com/zulfahmi3938/iAduanIPV.git
 
 Kaedah penyelarasan GAS dengan repository belum ditetapkan. Menyimpan kod di GitHub tidak secara automatik mengemas kini GAS atau deployment aplikasi.
 
-## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: enam fail checkpoint Admin Fasa 5.0D, termasuk laporan bulanan/cetakan, pemantauan, penapis, carian, tindakan dan sejarah.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
+## Struktur checkpoint\n\n- `gas/`: enam fail checkpoint staf Fasa 3.1, dikekalkan.\n- `gas-admin/`: enam fail checkpoint Admin Fasa 6.1A, termasuk guard UUID tindakan, semakan status simpanan dan fungsi Admin terdahulu.\n- Jangan menggabungkan kedua-dua folder ke satu projek GAS tanpa pemeriksaan: masing-masing mempunyai `Code.gs`, `doGet()` dan manifest sendiri.\n\n## Dokumentasi
 
 - [PROJECT.md](PROJECT.md): skop, cadangan struktur data, keputusan tertunggak dan pelan pembangunan.
 - [AGENTS.md](AGENTS.md): arahan untuk pembantu pembangunan yang bekerja dalam repository.
@@ -218,4 +279,4 @@ Dokumentasi akan dikemas kini apabila keputusan dibuat atau pelaksanaan berubah.
 
 ## Had tugas checkpoint semasa
 
-Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 5.0D disalin ke `gas-admin/`, termasuk laporan bulanan dan kawalan pratonton/cetak. Tugas semasa hanya menyimpan kod dan menyemak secara setempat; tiada fungsi GAS dijalankan.
+Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 6.1A disalin ke `gas-admin/`. Tugas semasa hanya menyimpan source dan mengaudit secara setempat; tiada fungsi ujian simpanan, GAS atau operasi Google dijalankan.
