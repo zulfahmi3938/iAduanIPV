@@ -4,7 +4,38 @@ Sistem pengurusan aduan kerosakan dan penyelenggaraan untuk Institut Pengurusan 
 
 Projek ini bertujuan memudahkan warga IPV menghantar aduan serta membantu pentadbir merekod, memantau dan mengemas kini tindakan penyelenggaraan.
 
-## Status terkini — checkpoint Admin Fasa 6.1A: Pencegahan Rekod Tindakan Berganda
+## Status terkini — Fasa 6.2 Final DEV checkpoint: Pemulihan UUID selepas refresh
+
+Pada 3 November 2026, enam fail diterima melalui `iADUAN_IPV_ADMIN_v0.6.2_FINAL_DEV.zip`. Branch `main` disahkan pada `e5b3cad97cdaec1ac443d7e641c8b84919544a60` (Fasa 6.1A) sebelum perubahan. Ini **DEV checkpoint, bukan kelulusan production**. Hanya `gas-admin/AdminDashboard.html`, README.md dan PROJECT.md berubah berbanding checkpoint itu; lima fail Admin lain sama selepas sanitasi konfigurasi. Folder `gas/` kekal tanpa perubahan.
+
+Pasangan `complaintId` dan `actionId` disimpan dalam `sessionStorage` sebelum penghantaran dan dibaca semula untuk mengesahkan penulisan storan. Rekod dipulihkan ketika borang dibuka selepas refresh. Bentuk objek, format ID aduan dan UUID disahkan; rekod rosak atau storan tidak tersedia menyekat simpanan dengan arahan rekonsiliasi manual. Aduan lain juga disekat selagi ada permintaan belum disahkan.
+
+Respons `found: true` mesti memadankan UUID yang disemak. `found: false`, respons tidak sah/tidak sepadan dan ralat backend tidak membersihkan UUID atau membenarkan penghantaran semula automatik. Handler kejayaan simpanan memerlukan `success: true`, `result.actionId` yang sepadan tanpa mengira huruf besar/kecil dan `result.complaintId` yang sepadan dengan payload asal. Sebelum pembersihan, pasangan ID dalam storan mesti masih sama. Callback lewat tidak dibenarkan memadam rekod pasangan lain. Kegagalan pembersihan mengekalkan borang serta amaran; `loadComplaints()` hanya dipanggil selepas pembersihan berjaya.
+
+### Keputusan GAS DEV — dilaporkan pemilik
+
+- Dashboard dan borang normal; UUID dipulihkan selepas refresh.
+- `found: true` bagi UUID sedia ada mengunci borang lama dan membersihkan rekod sementara; refresh seterusnya memulihkan borang normal.
+- `found: false` mengekalkan UUID dan kunci; JSON rosak mengunci borang dengan amaran. Pembersihan data simulasi memulihkan keadaan biasa.
+- Satu tindakan DEV bagi `IPV-2026-0001` berjaya disimpan: jumlah `TINDAKAN` meningkat **3 kepada 4**, tepat satu rekod baharu; status berubah `BAHARU` kepada `DALAM_TINDAKAN`. `IPV-2026-0002` tidak berubah.
+
+Keputusan ini ialah laporan pemilik, bukan ujian Google yang diulang semasa checkpoint. Tiada kandungan aduan, UUID sebenar, e-mel dalaman, tangkap layar atau log peribadi dimasukkan ke GitHub. Pertambahan satu rekod tidak membuktikan ujian penghantaran semula UUID yang sama pada versi akhir ini; ujian berurutan Fasa 6.1A kekal sebagai bukti terdahulu.
+
+### Audit checkpoint dan batasan
+
+Sintaks empat fail GS secara individu/gabungan serta JavaScript HTML, keseimbangan tag/ID HTML, manifest dan lima panggilan backend lulus semakan. Lapan belas kumpulan simulasi frontend setempat lulus termasuk rekod rosak, kegagalan storan, respons tidak sepadan, callback lewat, penguncian dan pembersihan. Simulasi tidak menghubungi Google dan tidak membuktikan rendering pelayar sebenar atau transaksi atomik. Perlindungan Admin, validasi UUID, pengesanan pendua dalam ScriptLock dan sekatan database DEV Fasa 6.1A tidak berubah.
+
+`sessionStorage` bergantung pada sesi/tab dan konteks origin; pemulihan selepas kehilangan sesi, pertukaran peranti atau merentas dua tab tidak dijamin. Payload tindakan penuh tidak disimpan. `found: true` membuktikan kewujudan UUID dalam sejarah, bukan transaksi atomik ADUAN/TINDAKAN; endpoint semakan tidak mengambil lock penyimpanan. `found: false` tidak membuktikan pelaksanaan simpanan yang sedang berjalan sudah gagal. Rekonsiliasi manual masih diperlukan apabila hasil tidak pasti. Helper ujian backend sedia ada dikekalkan dan tidak dijalankan; pengasingannya sebelum production masih tertangguh.
+
+Baca [prosedur rekonsiliasi manual Fasa 6.2](PROJECT.md#prosedur-rekonsiliasi-manual-fasa-62) sebelum membersihkan rekod sementara atau mencuba semula. Tiada GAS asal, deployment, Sheets, Drive atau Script Properties diubah dalam checkpoint ini.
+
+Salinan GitHub sahaja menggunakan `ADMIN_CONFIG.databaseId = 'REPLACE_WITH_DEV_SPREADSHEET_ID'` dan `ADMIN_CONFIG.adminEmail = 'admin@example.invalid'`. Untuk pemulihan yang dibenarkan kemudian, ambil nilai sebenar daripada ZIP/config persendirian pemilik dan pulihkan hanya dalam projek GAS Admin sasaran yang telah disahkan; jangan commit nilai sebenar. Snapshot GitHub dengan placeholder bukan konfigurasi boleh guna terus. ZIP asal dan konfigurasi GAS tidak disentuh.
+
+Prinsip **Zero Cost First, Mobile First, User Friendly dan Sustainable** dikekalkan. Sasaran PWA/ikon Home Screen, kesinambungan pentadbiran dan rekod penyelenggaraan berpusat kekal sebagai objektif; checkpoint ini tidak mendakwa PWA atau production sudah siap. Langkah berikutnya ialah menyemak batasan pemulihan/concurrency dan menyediakan penerimaan production secara berasingan apabila diarahkan.
+
+## Checkpoint terdahulu — Admin Fasa 6.1A: Pencegahan Rekod Tindakan Berganda
+
+Bahagian Fasa 6.1A di bawah ialah rekod sejarah. Had UUID dalam memori sahaja telah ditambah baik oleh Fasa 6.2 di atas; batas backend yang tidak diubah masih terpakai.
 
 Pada 15 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.6.1A.zip`. Branch main disahkan pada `9d4bde6` sebelum penyediaan checkpoint ini. Snapshot disimpan dalam gas-admin/; folder gas/ aplikasi staf dikekalkan tanpa perubahan.
 
@@ -280,3 +311,4 @@ Dokumentasi akan dikemas kini apabila keputusan dibuat atau pelaksanaan berubah.
 ## Had tugas checkpoint semasa
 
 Hanya salinan kod serta dokumentasi GitHub disimpan. Jangan mengubah GAS asal, menjalankan fungsi setup, melakukan `clasp push`, mengubah deployment atau meminda data Sheets/Drive. Dashboard Admin Fasa 6.1A disalin ke `gas-admin/`. Tugas semasa hanya menyimpan source dan mengaudit secara setempat; tiada fungsi ujian simpanan, GAS atau operasi Google dijalankan.
+

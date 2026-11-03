@@ -934,9 +934,67 @@ function openActionForm(item, card, button) {
   // Elakkan klik berulang semasa menyimpan.
   let isSaving = false;
   
+// Fasa 6.2: Rekod sementara; jangan buang rekod yang tidak pasti secara automatik.
+const PENDING_ACTION_KEY = 'iaduan_ipv_admin_pending_action_v1';
+const ACTION_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const COMPLAINT_ID_RE = /^IPV-[0-9]{4}-[0-9]{4,}$/;
 let pendingActionId = null;
 
+function readPendingAction_() {
+  const raw = sessionStorage.getItem(PENDING_ACTION_KEY);
+  if (raw === null) return null;
+  const record = JSON.parse(raw);
+  if (!record || typeof record !== 'object' || Array.isArray(record) ||
+      typeof record.complaintId !== 'string' ||
+      typeof record.actionId !== 'string' ||
+      !COMPLAINT_ID_RE.test(record.complaintId) ||
+      !ACTION_UUID_RE.test(record.actionId)) {
+    throw new Error('Format rekod pemulihan tidak sah.');
+  }
+  return record;
+}
 
+// Buang hanya rekod dengan UUID yang sama; kegagalan storan tidak disenyapkan.
+function clearPendingAction_(expectedComplaintId, expectedActionId) {
+  const stored = readPendingAction_();
+  if (!stored || stored.complaintId !== expectedComplaintId ||
+      stored.actionId.toLowerCase() !== String(expectedActionId || '').toLowerCase()) {
+    throw new Error('Rekod pemulihan berubah atau tidak ditemui.');
+  }
+  sessionStorage.removeItem(PENDING_ACTION_KEY);
+  if (sessionStorage.getItem(PENDING_ACTION_KEY) !== null) {
+    throw new Error('Rekod pemulihan tidak dapat dipadam.');
+  }
+}
+
+try {
+  const savedAction = readPendingAction_();
+  if (savedAction) {
+    saveBtn.disabled = true;
+    if (savedAction.complaintId === item.id) {
+      pendingActionId = savedAction.actionId;
+      checkSaveBtn.hidden = false;
+      saveBtn.textContent = 'Semak Rekod';
+      notice.textContent =
+        'Terdapat cubaan simpanan terdahulu untuk aduan ini. ' +
+        'Sila pilih Semak Status Simpanan sebelum membuat tindakan baharu.';
+    } else {
+      notice.textContent =
+        'Terdapat simpanan belum disahkan untuk aduan ' +
+        savedAction.complaintId + '. Sila buka aduan tersebut untuk menyemaknya.';
+    }
+    notice.style.color = '#b91c1c';
+  }
+} catch (error) {
+  saveBtn.disabled = true;
+  checkSaveBtn.hidden = true;
+  notice.textContent =
+    'Rekod pemulihan tidak sah atau storan tidak boleh dibaca. ' +
+    'Jangan simpan tindakan baharu; minta Admin menyemak rekod ' +
+    'dan sejarah TINDAKAN sebelum pemulihan manual.';
+  notice.style.color = '#b91c1c';
+  console.error('Pemulihan tindakan:', error);
+}
 
 checkSaveBtn.addEventListener('click', function() {
   if (!pendingActionId) {
@@ -950,22 +1008,55 @@ checkSaveBtn.addEventListener('click', function() {
   notice.textContent = 'Menyemak rekod tindakan...';
   notice.style.color = '#64748b';
 
+  const checkedActionId = pendingActionId;
   google.script.run
     .withSuccessHandler(function(result) {
       checkSaveBtn.disabled = false;
       checkSaveBtn.textContent = 'Semak Status Simpanan';
 
-      if (result && result.found === true) {
-        notice.textContent =
-          'ID tindakan ditemui dalam sejarah. ' +
-          'Sila semak sejarah tindakan dan status aduan.';
-        notice.style.color = '#15803d';
+if (pendingActionId !== checkedActionId) {
+        notice.textContent = 'Rekod berubah semasa semakan. Muat semula borang dan semak semula.';
+        notice.style.color = '#b91c1c';
+        saveBtn.disabled = true;
+        return;
+      }
+      if (result && result.found === true &&
+          String(result.actionId || '').toLowerCase() === checkedActionId.toLowerCase()) {
+  const confirmedId = checkedActionId;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Rekod Telah Disimpan';
+  try {
+    clearPendingAction_(item.id, confirmedId);
+    pendingActionId = null;
+    checkSaveBtn.hidden = true;
+    notice.textContent =
+      'Rekod tindakan telah ditemui dalam sejarah. ' +
+      'Sila buka semula aduan untuk membuat tindakan baharu.';
+    notice.style.color = '#15803d';
+  } catch (error) {
+    notice.textContent =
+      'Rekod tindakan ditemui, tetapi pembersihan rekod sementara gagal. ' +
+      'Borang kekal dikunci. Minta Admin semak storan sebelum tindakan lain.';
+    notice.style.color = '#b91c1c';
+    console.error('Pembersihan pemulihan:', error);
+  }
  
-      } else {
+      } else if (result && result.found === true) {
+        notice.textContent =
+          'AMARAN: Backend menemui ID tindakan yang tidak sepadan. ' +
+          'Borang kekal dikunci. Sila semak sejarah TINDAKAN dan ADUAN secara manual.';
+        notice.style.color = '#b91c1c';
+      } else if (result && result.found === false &&
+                 String(result.actionId || '').toLowerCase() === checkedActionId.toLowerCase()) {
         notice.textContent =
           'ID tindakan belum ditemui. ' +
           'Status simpanan masih belum pasti. ' +
           'Jangan hantar semula secara automatik.';
+        notice.style.color = '#b91c1c';
+      } else {
+        notice.textContent =
+          'Respons semakan tidak sah atau ID tidak sepadan. ' +
+          'Borang kekal dikunci. Sila semak secara manual.';
         notice.style.color = '#b91c1c';
       }
     })
@@ -982,8 +1073,29 @@ checkSaveBtn.addEventListener('click', function() {
 });
 
 
-  saveBtn.addEventListener('click', function() {
-    if (isSaving) return;
+saveBtn.addEventListener('click', function() {
+  if (isSaving) return;
+
+  // Fasa 6.2: Sekat simpanan jika ada permintaan belum disahkan.
+  let pendingRecord;
+
+  try {
+    pendingRecord = sessionStorage.getItem(PENDING_ACTION_KEY);
+  } catch (error) {
+    notice.textContent =
+      'Tidak dapat menyemak rekod pemulihan. ' +
+      'Tindakan tidak dihantar.';
+    notice.style.color = '#b91c1c';
+    return;
+  }
+
+  if (pendingRecord) {
+    notice.textContent =
+      'Terdapat simpanan terdahulu yang belum disahkan. ' +
+      'Sila semak status simpanan sebelum membuat tindakan baharu.';
+    notice.style.color = '#b91c1c';
+    return;
+  }
 
     const payload = {
       complaintId: item.id,
@@ -1036,7 +1148,27 @@ checkSaveBtn.addEventListener('click', function() {
   }
 
   payload.actionId = pendingActionId;
-
+// Fasa 6.2: Kekalkan ID sebelum penghantaran ke backend.
+try {
+  sessionStorage.setItem(
+    PENDING_ACTION_KEY,
+    JSON.stringify({
+      complaintId: item.id,
+      actionId: pendingActionId
+    })
+  );
+  const persisted = readPendingAction_();
+  if (!persisted || persisted.complaintId !== item.id ||
+      persisted.actionId.toLowerCase() !== pendingActionId.toLowerCase()) {
+    throw new Error('Pengesahan storan sementara gagal.');
+  }
+} catch (error) {
+  notice.textContent =
+    'Rekod pemulihan tidak dapat disimpan. ' +
+    'Tindakan tidak dihantar untuk mengelakkan rekod berganda.';
+  notice.style.color = '#b91c1c';
+  return;
+}
     isSaving = true;
     saveBtn.disabled = true;
     button.disabled = true;
@@ -1045,9 +1177,22 @@ checkSaveBtn.addEventListener('click', function() {
     notice.textContent = 'Sedang menyimpan tindakan.';
     notice.style.color = '#64748b';
 
+    const submittedActionId = pendingActionId;
     google.script.run
       .withSuccessHandler(function(result) {
-        if (!result || result.success !== true) {
+        if (pendingActionId !== submittedActionId) {
+          notice.textContent = 'Keadaan borang berubah semasa simpanan. Semak rekod TINDAKAN secara manual.';
+          notice.style.color = '#b91c1c';
+          saveBtn.disabled = true;
+          return;
+        }
+        if (
+  !result ||
+  result.success !== true ||
+  typeof result.actionId !== 'string' ||
+  result.actionId.toLowerCase() !== payload.actionId.toLowerCase() ||
+  result.complaintId !== payload.complaintId
+) {
           notice.textContent =
             'Respons tidak dapat disahkan. ' +
             'Semak Google Sheets sebelum cuba lagi.';
@@ -1056,15 +1201,27 @@ checkSaveBtn.addEventListener('click', function() {
           checkSaveBtn.hidden = false;
           return;
         }
-
-        notice.textContent =
-          'Tindakan berjaya disimpan!';
-        notice.style.color = '#15803d';
-
-        saveBtn.textContent = 'Berjaya Disimpan';
-
-        // Dapatkan status terkini daripada Sheets.
-        loadComplaints();
+// Backend telah mengesahkan simpanan berjaya.
+        const confirmedId = submittedActionId;
+        let cleanupOk = false;
+        try {
+          clearPendingAction_(item.id, confirmedId);
+          cleanupOk = true;
+          pendingActionId = null;
+        } catch (error) {
+          console.error('Pembersihan rekod selepas simpanan:', error);
+        }
+        notice.textContent = cleanupOk
+          ? 'Tindakan berjaya disimpan!'
+          : 'Tindakan disahkan berjaya disimpan, tetapi rekod pemulihan ' +
+            'tidak dapat dibersihkan. Jangan hantar semula; hubungi Admin.';
+        notice.style.color = cleanupOk ? '#15803d' : '#b91c1c';
+        saveBtn.textContent = cleanupOk ? 'Berjaya Disimpan' : 'Rekod Telah Disimpan';
+        saveBtn.disabled = true;
+        // Jangan gantikan borang dan amaran jika pembersihan rekod gagal.
+        if (cleanupOk) {
+          loadComplaints();
+        }
       })
       .withFailureHandler(function(error) {
         notice.textContent =

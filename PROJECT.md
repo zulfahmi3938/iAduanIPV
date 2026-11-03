@@ -2,7 +2,97 @@
 
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
-## Status terkini — checkpoint Admin Fasa 6.1A: Pencegahan Rekod Tindakan Berganda
+## Status terkini — Fasa 6.2 Final DEV checkpoint
+
+Snapshot enam fail `iADUAN_IPV_ADMIN_v0.6.2_FINAL_DEV.zip` diterima pada 3 November 2026. Asas branch `main` ialah `e5b3cad97cdaec1ac443d7e641c8b84919544a60` (Fasa 6.1A). Skop hanya snapshot Admin dan dokumentasi; ini **DEV checkpoint, bukan kelulusan production**.
+
+### Tingkah laku yang disahkan melalui source dan simulasi
+
+- `sessionStorage` menyimpan satu pasangan `complaintId`/`actionId` sebelum RPC simpanan; bacaan semula mengesahkan rekod benar-benar tersimpan.
+- Pemulihan berlaku apabila borang dibuka selepas refresh. Validasi memeriksa objek bukan array, dua medan string, format ID aduan serta UUID. Rekod tidak sah atau storan tidak boleh dibaca menyebabkan simpanan disekat; rekod tidak dipadam automatik.
+- Rekod bagi aduan sama memaparkan Semak Status Simpanan; rekod bagi aduan lain menyekat simpanan dan mengarahkan Admin membuka aduan asal. Menutup/membuka borang tidak membersihkan rekod sementara.
+- `found: true` mesti memadankan UUID semakan. `found: false`, ralat backend, respons tidak sah dan ID berlainan mengekalkan penguncian/rekod; respons `true` berlainan mempunyai amaran khusus.
+- Handler kejayaan `saveAdminAction` menerima kejayaan hanya jika `success === true`, actionId respons memadankan payload tanpa mengira huruf besar/kecil dan complaintId respons memadankan payload asal.
+- Snapshot ID sebelum RPC membantu mengesan perubahan keadaan closure. Pembersihan menyemak pasangan aduan/UUID terkini dalam storan, bukan UUID sahaja. Callback lewat tidak memadam rekod pasangan lain.
+- Pembersihan menangkap ralat dan mengesahkan kunci telah tiada. Jika gagal, borang serta amaran dikekalkan. Dashboard dimuat semula hanya selepas pembersihan kejayaan simpanan berjaya; handler semakan tidak memanggil loadComplaints.
+- UUID pendua masih diperiksa di backend semasa ScriptLock dipegang. Validasi UUID, pengesahan Admin, sekatan database DEV dan backend lain tidak berubah.
+
+### Keputusan ujian GAS DEV Fasa 6.2 — dilaporkan pemilik
+
+| Ujian | Keputusan dilaporkan |
+| --- | --- |
+| Dashboard dan borang Rekod Tindakan | Dibuka normal |
+| Pemulihan selepas refresh | UUID dipulihkan daripada sessionStorage |
+| found:true bagi UUID sedia ada | Borang lama dikunci dan rekod sementara dibersihkan |
+| Refresh selepas pembersihan | Borang kembali normal |
+| found:false | UUID serta penguncian dikekalkan |
+| JSON rosak | Borang dikunci dengan amaran pemulihan manual |
+| Selepas data simulasi dibersihkan | Borang kembali normal |
+| Satu tindakan sebenar dalam DEV | Berjaya bagi IPV-2026-0001 |
+| Jumlah TINDAKAN | 3 kepada 4; tepat satu rekod baharu |
+| Status IPV-2026-0001 | BAHARU kepada DALAM_TINDAKAN |
+| IPV-2026-0002 | Tidak berubah |
+
+Ujian di atas dilaksanakan manual oleh pemilik dan tidak diulang dalam sesi checkpoint. Semakan/pemulihan menggunakan data simulasi atau bacaan; satu ujian penyimpanan DEV sebenar dilaporkan berasingan. Tiada isi aduan, UUID sebenar, log, gambar atau data peribadi disalin ke repository. Pertambahan satu rekod bukan bukti penghantaran semula UUID sama pada versi akhir, concurrency dua tab atau transaksi atomik; keputusan idempotensi berurutan Fasa 6.1A ialah bukti terdahulu.
+
+### Audit setempat dan perubahan fail
+
+Empat GS individu/gabungan serta JavaScript HTML lulus parsing; tag HTML seimbang, tiada ID pendua dan manifest JSON sah. Lima RPC mempunyai fungsi backend sepadan. Manifest kekal V8, Asia/Singapore, dependencies kosong, USER_ACCESSING / MYSELF; deployment aktif tidak diaudit semula. Lapan belas kumpulan simulasi frontend dengan DOM/RPC/storan rekaan lulus termasuk respons simpanan yang kehilangan ID atau berbeza, UUID huruf besar/kecil, kegagalan baca/tulis/padam storan, rekod rosak, callback lewat dan pengekalan kunci. Simulasi tidak memanggil perkhidmatan Google dan bukan ujian visual pelayar sebenar.
+
+Hanya gas-admin/AdminDashboard.html berbeza daripada main selepas sanitasi. Code.gs, AdminActionService.gs, AdminHistoryService.gs, AdminImageService.gs dan appsscript.json sama dengan checkpoint terdahulu; lima fail tersebut juga sama byte-for-byte dengan ZIP Patch v2 asal sebelum sanitasi Code.gs. HTML akhir hanya menambah guard padanan respons kepada Patch v2. README.md dan PROJECT.md dikemas kini; gas/, AGENTS.md dan fail lain dikekalkan. Tiada dependency/perkhidmatan berbayar atau fungsi di luar source ZIP ditambah.
+
+## Prosedur rekonsiliasi manual Fasa 6.2
+
+Prosedur ini ialah panduan tindakan manusia apabila dibenarkan, bukan operasi yang dijalankan oleh checkpoint. Hentikan penghantaran lain dan kekalkan tab asal. Catat pasangan ID jika boleh, masa, mesej serta salinan mentah storan secara persendirian; jangan terbitkan data itu. Sahkan database/projek DEV yang betul dan pastikan pelaksanaan simpanan berkaitan telah tamat sebelum membuat keputusan. Jangan menganggap tempoh menunggu tertentu atau found:false berulang membuktikan tiada simpanan.
+
+### found:false berulang
+
+1. Cari UUID terus dalam TINDAKAN; semak kaitan aduan, catatan, pelaku dan masa secara dalaman, serta keadaan ADUAN/sejarah tindakan berkaitan. Semak pelaksanaan yang masih berjalan atau ralat/rollback.
+2. Jika rekod ditemui, semak konsistensinya sebelum menganggap simpanan lengkap. Jika carian aplikasi berbeza daripada bacaan terus, semak konfigurasi dan sumber data dahulu.
+3. Jika tiada rekod, pastikan pelaksanaan tamat dan tiada kemas kini separa. Jika masih tidak pasti, kekalkan sekatan dan eskalasi; jangan menjana UUID baharu atau membersihkan rekod sebagai jalan pintas.
+4. Selepas disahkan tidak tersimpan, pemilik boleh meluluskan pemulihan/penghantaran semula dengan UUID serta payload asal yang telah disahkan. Snapshot ini tiada retry automatik. Jika payload asal hilang, jangan mereka semula tindakan tanpa rekonsiliasi dan keputusan pemilik.
+
+### Rekod sessionStorage rosak
+
+1. Simpan salinan mentah persendirian; jangan terus padam atau meneka UUID/aduan yang hilang.
+2. Kenal pasti permintaan melalui sejarah dan pelaksanaan berkaitan. Jika pasangan asal dapat disahkan, pemulihan pasangan itu boleh dibuat secara manual apabila dibenarkan, kemudian semak status.
+3. Jika identiti atau hasil tidak dapat ditentukan, kekalkan penguncian. Hanya selepas rekonsiliasi selesai dan keputusan pemilik, bersihkan kunci khusus atau pulihkan rekod yang disahkan. Jangan kosongkan keseluruhan storan pelayar.
+
+### TINDAKAN dan ADUAN tidak selaras
+
+1. Hentikan tindakan baharu untuk aduan berkenaan. Bandingkan sejarah mengikut masa, termasuk tindakan sah lebih baharu, dengan status dan tarikh kemas kini/selesai ADUAN.
+2. Kewujudan UUID dalam TINDAKAN tidak membuktikan semua kemas kini ADUAN telah selesai. Jangan menulis ganti status semasa berdasarkan satu tindakan lama atau menghantar tindakan baharu untuk menutup perbezaan.
+3. Rekodkan perbezaan dan sediakan salinan sandaran sebelum pembetulan. Pemilik perlu meluluskan pembetulan data secara berasingan dengan jejak perubahan; jangan memadam sejarah secara senyap. Jika belum dapat disahkan, kekalkan keadaan belum selesai disemak.
+
+### Pembersihan rekod sementara gagal
+
+1. Sahkan UUID merujuk aduan yang betul, simpanan selesai dan ADUAN/TINDAKAN konsisten; pastikan tiada permintaan masih berjalan.
+2. Jika penyemak imbas menyekat storan, pulihkan akses storan dalam konteks DEV yang betul sebelum tindakan seterusnya. Jangan menukar tab/sesi untuk memintas kunci.
+3. Selepas dibenarkan, padam hanya `iaduan_ipv_admin_pending_action_v1` dalam tab/konteks asal dan hanya jika pasangan semasa masih sama dengan yang disahkan. Jika pasangan berubah, hentikan pembersihan dan semak permintaan baharu.
+4. Refresh dan buka semula aduan. Pastikan borang normal, sejarah tidak bertambah dan tiada penghantaran semula dibuat. Simpan rekod ringkas keputusan rekonsiliasi secara persendirian.
+
+## Batasan dan kerja tertangguh Fasa 6.2
+
+- sessionStorage bergantung pada sesi/tab dan origin; pemulihan selepas kehilangan sesi pelayar, tab/peranti berbeza atau perubahan origin deployment tidak dijamin. Payload lengkap tidak dipersistkan.
+- Penguncian ini bukan jaminan merentas dua tab. Permintaan yang menggunakan UUID berlainan masih dianggap tindakan berlainan oleh backend; UUID bukan identiti pengguna atau cap kesamaan payload.
+- Endpoint semakan membaca sejarah tanpa lock penyimpanan dan hanya memulangkan found/actionId. found:true bukan jaminan atomik bahawa ADUAN selesai dikemas kini; found:false tidak membuktikan operasi berjalan sudah gagal. Penulisan dua tab data menggunakan pemulihan terbaik, bukan transaksi atomik.
+- Ujian concurrency sebenar, kehilangan sesi dan gangguan di antara penulisan/rollback belum disahkan. Production belum diuji atau diluluskan. Simulasi tidak menggantikan ujian pelayar/GAS sebenar.
+- Helper backend pembangunan yang disenaraikan dalam rekod Fasa 6.1A kekal; testSaveAdminActionOnce, testActionIdempotencyIntegration dan prepareDevIdempotencyTestId boleh menulis data/Script Properties dan tidak dijalankan semasa checkpoint. Pengasingan helper sebelum peluasan akses production masih diperlukan.
+- Rekonsiliasi manual masih diperlukan bagi rekod rosak, hasil tidak pasti atau data tidak konsisten. Guard respons tidak menambah transaksi atomik atau ketahanan terhadap kehilangan sesi.
+
+Langkah seterusnya apabila diarahkan: semak pengasingan helper dan prosedur rekonsiliasi, rancang ujian concurrency/kehilangan sesi secara terkawal, serta tentukan kriteria penerimaan production. Jangan menjalankan ujian tulis atau deployment hanya berdasarkan kewujudan checkpoint ini.
+
+### Sanitasi dan pemulihan konfigurasi Fasa 6.2
+
+Hanya salinan GitHub Code.gs menggantikan ADMIN_CONFIG.databaseId dengan `REPLACE_WITH_DEV_SPREADSHEET_ID` dan ADMIN_CONFIG.adminEmail dengan `admin@example.invalid`, konsisten dengan checkpoint terdahulu. Tiada nilai sebenar, credentials, Script Properties, data aduan atau gambar diterbitkan. ZIP asal dan konfigurasi GAS tidak disentuh.
+
+Untuk pemulihan yang dibenarkan kemudian, dapatkan dua nilai sebenar daripada ZIP/config pemilik yang disimpan persendirian; sahkan projek GAS Admin serta database DEV sasaran dan pulihkan placeholder hanya dalam salinan kerja persendirian. Jangan gabungkan gas/ dan gas-admin/ atau commit nilai sebenar. Dokumentasi ini bukan arahan deploy dan tidak mengubah deployment aktif.
+
+Prinsip **Zero Cost First, Mobile First, User Friendly dan Sustainable** dikekalkan. PWA dengan ikon Home Screen, kesinambungan pentadbiran dan rekod penyelenggaraan berpusat kekal objektif projek, bukan semua fungsi siap pada checkpoint ini.
+
+## Checkpoint terdahulu — Admin Fasa 6.1A: Pencegahan Rekod Tindakan Berganda
+
+Bahagian Fasa 6.1A di bawah ialah rekod sejarah. Had UUID dalam memori sahaja telah ditambah baik oleh Fasa 6.2 di atas; batas backend yang tidak diubah masih terpakai.
 
 Pada 15 Oktober 2026, enam fail diterima daripada ZIP pemilik `iADUAN_IPV_ADMIN_v0.6.1A.zip`. Branch main disahkan pada `9d4bde6` sebelum penyediaan checkpoint ini. Snapshot disimpan dalam gas-admin/; folder gas/ aplikasi staf dikekalkan tanpa perubahan.
 
@@ -444,3 +534,4 @@ Semak dan masukkan dokumentasi asal ke GitHub, commit/push jika akses tersedia, 
 | 2026-10-13 | Commit dokumentasi tempatan siap; push gagal kerana tiada pengesahan GitHub. Kandungan GAS tidak diperoleh; laporan dan cadangan bersyarat tersedia dalam PHASE1_REPORT.md. |
 
 Tambah keputusan atau perubahan penting di sini, dan kemas kini README jika status projek berubah.
+
