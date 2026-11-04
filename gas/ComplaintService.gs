@@ -141,8 +141,8 @@ function nextComplaintId_(sheet) {
 /**
  * Hantar aduan baharu.
  *
- * Tiada login pada versi ini.
- * Nama dropdown bukan pengesahan identiti.
+ * Tanpa Google Sign-In; staf mesti mengesahkan PIN sendiri.
+ * Nama dropdown sahaja bukan pengesahan identiti.
  *
  * Jangan tambah fungsi admin di sini.
  */
@@ -154,6 +154,8 @@ function submitComplaint(payload) {
   const staffId = String(
     payload.staffId || ''
   ).trim();
+
+  const staffPin = String(payload.staffPin || '');
 
   const location = String(
     payload.location || ''
@@ -234,6 +236,10 @@ if (location.length > 150) {
         'Nama pelapor tidak ditemui.'
       );
     }
+
+    // Sahkan PIN sebelum jana ID, simpan gambar atau aduan.
+    // LockService yang sedia ada melindungi rate limiting.
+    verifyStaffPin_(staffId, staffPin);
 
     const now = new Date();
 
