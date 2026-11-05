@@ -18,7 +18,7 @@ const IMAGE_STORAGE = Object.freeze({
  * Jika folder ID sudah disimpan,
  * gunakan folder sedia ada.
  */
-function setupImageFolder() {
+function setupImageFolder_() {
   const lock = LockService.getScriptLock();
 
   if (!lock.tryLock(30000)) {
@@ -74,7 +74,7 @@ function setupImageFolder() {
 /**
  * Semak folder tanpa mengubah fail.
  */
-function checkImageFolder() {
+function checkImageFolder_() {
   const id = PropertiesService
     .getScriptProperties()
     .getProperty(
