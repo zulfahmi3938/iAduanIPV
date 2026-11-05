@@ -1,5 +1,9 @@
 # iADUAN IPV
 
+## Status kolaborasi PR #1–#3 (5 November 2026)
+
+Ketiga-tiga Draft PR masih **open, belum merge dan belum deploy**: [PIN Staf #1](https://github.com/zulfahmi3938/iAduanIPV/pull/1), [Duplicate Submission #2](https://github.com/zulfahmi3938/iAduanIPV/pull/2), [RPC Hardening #3](https://github.com/zulfahmi3938/iAduanIPV/pull/3). **Panduan gabungan dan handover:** [COLLABORATION_STATUS_PR1_PR3.md](docs/COLLABORATION_STATUS_PR1_PR3.md). Semua keputusan mock/statik bukan pengesahan runtime GAS; integrasi dan keputusan deploy kekal pada Fahmi.
+
 ## Cadangan Fasa 3 — GAS Staf RPC Hardening (Draft PR, belum deploy)
 
 Branch `security/burndvs-staff-rpc-hardening-v1` mengehadkan fungsi setup, diagnostik serta helper GAS Staf dengan akhiran underscore agar tidak boleh dipanggil terus melalui `google.script.run`. Entry point borang `doGet`, `getFormOptions`, `submitComplaint` dan info bukan rahsia `getAppInfo` dikekalkan. **22 semakan setempat PASS, 0 FAIL; runtime GAS sebenar belum disahkan.** Tiada GAS, Google Sheets, Drive, Script Properties atau deployment diubah. Baca [handover Fasa 3](docs/STAFF_RPC_HARDENING_V1.md) sebelum integrasi. PR PIN #1 dan Duplicate Submission #2 masih perlu diintegrasikan tanpa menimpa kod masing-masing.
