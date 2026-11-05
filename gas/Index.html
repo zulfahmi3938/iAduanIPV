@@ -276,6 +276,100 @@
       document.getElementById('error');
 
     let submitting = false;
+    let formReady = false;
+    let recoveringPending = false;
+    let activeRequestId = null;
+    const pendingKey = 'iaduan_staff_pending_request_v1';
+
+    function validRequestId(id) {
+      return typeof id === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id);
+    }
+
+    function readPendingRequestId() {
+      let id;
+      try {
+        id = sessionStorage.getItem(pendingKey);
+      } catch (error) {
+        throw new Error('Storan sesi browser tidak tersedia. Sila aktifkan storan sesi.');
+      }
+      if (id && !validRequestId(id)) {
+        throw new Error('Rekod penghantaran dalam browser tidak sah. Hubungi urus setia.');
+      }
+      return id || null;
+    }
+
+    function newSecureRequestId() {
+      if (!window.crypto || !window.crypto.getRandomValues) {
+        throw new Error('Browser ini tidak menyokong ID penghantaran selamat.');
+      }
+      const bytes = new Uint8Array(16);
+      window.crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 15) | 64;
+      bytes[8] = (bytes[8] & 63) | 128;
+      const hex = Array.from(bytes, function(n) {
+        return n.toString(16).padStart(2, '0');
+      }).join('');
+      return hex.slice(0,8) + '-' + hex.slice(8,12) + '-' +
+        hex.slice(12,16) + '-' + hex.slice(16,20) + '-' + hex.slice(20);
+    }
+
+    function getOrCreateRequestId() {
+      if (activeRequestId) return activeRequestId;
+      const id = readPendingRequestId() || newSecureRequestId();
+      try {
+        sessionStorage.setItem(pendingKey, id);
+      } catch (error) {
+        throw new Error('Tidak dapat menyimpan ID penghantaran dalam browser.');
+      }
+      activeRequestId = id;
+      return id;
+    }
+
+    function showSavedComplaint(complaintId) {
+      document.getElementById('reference').textContent = complaintId;
+      document.getElementById('formCard').style.display = 'none';
+      document.getElementById('successCard').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    function restorePendingSubmission() {
+      let previous;
+      try {
+        previous = readPendingRequestId();
+      } catch (error) {
+        submitBtn.disabled = true;
+        showError(error.message);
+        return;
+      }
+      if (!previous) return;
+      activeRequestId = previous;
+      recoveringPending = true;
+      submitBtn.disabled = true;
+      google.script.run
+        .withSuccessHandler(function(result) {
+          recoveringPending = false;
+          if (result && result.found === true &&
+              result.requestId === previous &&
+              /^IPV-\d{4}-\d{4,}$/.test(result.complaintId)) {
+            showSavedComplaint(result.complaintId);
+            return;
+          }
+          showError(
+            'Ada penghantaran terdahulu yang belum disahkan. ' +
+            'Semak dengan urus setia jika ragu-ragu. ' +
+            'Jika mahu cuba semula, gunakan butiran dan gambar yang sama.'
+          );
+          submitBtn.disabled = !formReady;
+        })
+        .withFailureHandler(function() {
+          recoveringPending = false;
+          showError('Status aduan terdahulu belum dapat diperiksa. ' +
+            'Hubungi urus setia sebelum menghantar semula.');
+          submitBtn.disabled = !formReady;
+        })
+        .checkComplaintSubmissionStatus(previous);
+    }
 
     function showError(message) {
       errorBox.textContent =
@@ -401,7 +495,8 @@ document.getElementById('images')
             return;
           }
 
-          submitBtn.disabled = false;
+          formReady = true;
+          submitBtn.disabled = recoveringPending;
         })
         .withFailureHandler(function(error) {
           showError(
@@ -423,6 +518,14 @@ document.getElementById('images')
         return;
       }
 
+      let requestId;
+      try {
+        requestId = getOrCreateRequestId();
+      } catch (error) {
+        showError(error.message);
+        return;
+      }
+
       submitting = true;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Menghantar...';
@@ -439,26 +542,23 @@ document.getElementById('images')
               document.getElementById('location').value,
             description:
               document.getElementById('description').value,
-            images: images
+            images: images,
+            requestId: requestId
           };
 
           google.script.run
             .withSuccessHandler(function(result) {
               submitting = false;
-
-              document.getElementById(
-                'reference'
-              ).textContent = result.complaintId;
-
-              document.getElementById(
-                'formCard'
-              ).style.display = 'none';
-
-              document.getElementById(
-                'successCard'
-              ).style.display = 'block';
-
-              window.scrollTo(0, 0);
+              if (!result || result.success !== true ||
+                  result.requestId !== requestId ||
+                  !/^IPV-\d{4}-\d{4,}$/.test(result.complaintId)) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Hantar Aduan';
+                showError('Respons simpanan belum dapat disahkan. ' +
+                  'Semak dengan urus setia sebelum menghantar semula.');
+                return;
+              }
+              showSavedComplaint(result.complaintId);
             })
             .withFailureHandler(function(error) {
               submitting = false;
@@ -486,6 +586,14 @@ document.getElementById('images')
     });
 
     function newComplaint() {
+      try {
+        sessionStorage.removeItem(pendingKey);
+      } catch (error) {
+        showError('Tidak dapat memulakan aduan baharu. ' +
+          'Sila semak tetapan storan browser.');
+        return;
+      }
+      activeRequestId = null;
       form.reset();
       clearError();
 
@@ -504,6 +612,7 @@ document.getElementById('images')
     }
 
     loadForm();
+    restorePendingSubmission();
   </script>
 </body>
 </html>

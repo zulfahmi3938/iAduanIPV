@@ -155,6 +155,8 @@ function submitComplaint(payload) {
     payload.staffId || ''
   ).trim();
 
+  const requestId = normaliseComplaintRequestId_(payload.requestId);
+
   const location = String(
     payload.location || ''
   ).trim();
@@ -235,6 +237,22 @@ if (location.length > 150) {
       );
     }
 
+    // Semak durable receipt sebelum had harian, ID, atau upload.
+    requireComplaintIdempotencyColumns_(complaintSheet);
+    const requestHash = complaintRequestHash_(
+      staffId, location, description, payload.images || []
+    );
+    const existing = findComplaintRequest_(complaintSheet, requestId);
+    if (existing) {
+      if (existing.requestHash !== requestHash) {
+        throw new Error(
+          'ID penghantaran sudah digunakan untuk aduan berlainan. ' +
+          'Hubungi urus setia sebelum menghantar semula.'
+        );
+      }
+      return complaintReceipt_(existing.complaintId, requestId, true);
+    }
+
     const now = new Date();
 
     // Had global asas: maksimum 100
@@ -278,12 +296,15 @@ if (location.length > 150) {
       'NORMAL',                     // KEUTAMAAN
       '',                           // GAMBAR_FILE_IDS
       now,                          // TARIKH_KEMASKINI
-      ''                            // TARIKH_SELESAI
+      '',                           // TARIKH_SELESAI
+      requestId,                    // REQUEST_ID (N)
+      requestHash                   // REQUEST_HASH (O)
     ];
 
     
     // Simpan gambar sebelum merekodkan aduan.
     let savedImageIds = [];
+    let appendAttempted = false;
 
     try {
       savedImageIds = saveComplaintImages_(
@@ -294,11 +315,32 @@ if (location.length > 150) {
       // Kolum K: GAMBAR_FILE_IDS
       row[10] = savedImageIds.join(',');
 
-      // Simpan aduan bersama ID gambar.
+      // Receipt dan aduan direkodkan dalam baris yang sama.
+      appendAttempted = true;
       complaintSheet.appendRow(row);
 
     } catch (error) {
-      // Bersihkan gambar jika rekod gagal.
+      // Jika appendRow melaporkan ralat selepas berjaya menulis,
+      // pastikan receipt dahulu sebelum memadam gambar.
+      if (appendAttempted) {
+        let persisted;
+        try {
+          persisted = findComplaintRequest_(complaintSheet, requestId);
+        } catch (readError) {
+          throw new Error(
+            'Status simpanan belum dapat dipastikan. ' +
+            'Hubungi urus setia sebelum menghantar semula.'
+          );
+        }
+        if (persisted) {
+          if (persisted.requestHash !== requestHash) {
+            throw new Error('Rekod penghantaran tidak sepadan.');
+          }
+          return complaintReceipt_(persisted.complaintId, requestId, true);
+        }
+      }
+
+      // Hanya bersihkan gambar jika rekod disahkan tiada.
       savedImageIds.forEach(function(fileId) {
         try {
           DriveApp.getFileById(fileId)
@@ -321,11 +363,7 @@ if (location.length > 150) {
     }
 
 
-    return {
-      success: true,
-      complaintId: id,
-      message: 'Aduan berjaya direkodkan.'
-    };
+    return complaintReceipt_(id, requestId, false);
 
   } finally {
     lock.releaseLock();

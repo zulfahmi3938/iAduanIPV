@@ -1,5 +1,9 @@
 # Pelan Projek iADUAN IPV
 
+## Cadangan Fasa 2 — Duplicate Submission Protection (Draft PR, bukan deployment)
+
+**Status: hanya branch pembangunan** `feature/burndvs-staff-submission-idempotency-v1`. Menambah UUID setiap penghantaran staf, semakan receipt/hash dalam tab `ADUAN` dan pemulihan nombor rujukan selepas respons terputus. **Owner mesti menambah header `REQUEST_ID` (N1) dan `REQUEST_HASH` (O1) pada tab `ADUAN` DEV sedia ada sebelum kod ini boleh digunakan.** Tiada spreadsheet baharu; perubahan skema ini **belum dilakukan**. GAS Staf, GAS Admin, database dan deployment asal belum disentuh. PR Staff PIN #1 juga masih berasingan dan perlu diintegrasikan tanpa kehilangan medan PIN. Panduan lanjut: [Fasa 2 — Duplicate Submission V1](docs/STAFF_DUPLICATE_SUBMISSION_V1.md).
+
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
 ## Status terkini — Fasa 6.2 Final DEV checkpoint
