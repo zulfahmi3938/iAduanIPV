@@ -33,7 +33,9 @@ const DB_SETUP = Object.freeze({
       'KEUTAMAAN',
       'GAMBAR_FILE_IDS',
       'TARIKH_KEMASKINI',
-      'TARIKH_SELESAI'
+      'TARIKH_SELESAI',
+      'REQUEST_ID',
+      'REQUEST_HASH'
     ],
 
     TINDAKAN: [
