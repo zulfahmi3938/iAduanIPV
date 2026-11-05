@@ -1,5 +1,9 @@
 # iADUAN IPV
 
+## Cadangan Fasa 3 — GAS Staf RPC Hardening (Draft PR, belum deploy)
+
+Branch `security/burndvs-staff-rpc-hardening-v1` mengehadkan fungsi setup, diagnostik serta helper GAS Staf dengan akhiran underscore agar tidak boleh dipanggil terus melalui `google.script.run`. Entry point borang `doGet`, `getFormOptions`, `submitComplaint` dan info bukan rahsia `getAppInfo` dikekalkan. **22 semakan setempat PASS, 0 FAIL; runtime GAS sebenar belum disahkan.** Tiada GAS, Google Sheets, Drive, Script Properties atau deployment diubah. Baca [handover Fasa 3](docs/STAFF_RPC_HARDENING_V1.md) sebelum integrasi. PR PIN #1 dan Duplicate Submission #2 masih perlu diintegrasikan tanpa menimpa kod masing-masing.
+
 Sistem pengurusan aduan kerosakan dan penyelenggaraan untuk Institut Pengurusan Veterinar (IPV), dengan sasaran Progressive Web App (PWA) yang ringkas dan mesra telefon pintar.
 
 Projek ini bertujuan memudahkan warga IPV menghantar aduan serta membantu pentadbir merekod, memantau dan mengemas kini tindakan penyelenggaraan.
