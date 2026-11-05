@@ -1,5 +1,9 @@
 # Pelan Projek iADUAN IPV
 
+## Cadangan Fasa 3 — GAS Staf RPC Hardening (Draft PR, belum deploy)
+
+Branch `security/burndvs-staff-rpc-hardening-v1` mengehadkan fungsi setup, diagnostik serta helper GAS Staf dengan akhiran underscore agar tidak boleh dipanggil terus melalui `google.script.run`. Entry point borang `doGet`, `getFormOptions`, `submitComplaint` dan info bukan rahsia `getAppInfo` dikekalkan. **22 semakan setempat PASS, 0 FAIL; runtime GAS sebenar belum disahkan.** Tiada GAS, Google Sheets, Drive, Script Properties atau deployment diubah. Baca [handover Fasa 3](docs/STAFF_RPC_HARDENING_V1.md) sebelum integrasi. PR PIN #1 dan Duplicate Submission #2 masih perlu diintegrasikan tanpa menimpa kod masing-masing.
+
 Tarikh asas dokumentasi: 13 Oktober 2026.
 
 ## Status terkini — Fasa 6.2 Final DEV checkpoint
