@@ -77,7 +77,7 @@ const DB_SETUP = Object.freeze({
  * - Hentikan operasi.
  * - Jangan cipta spreadsheet pengganti.
  */
-function setupDatabase() {
+function setupDatabase_() {
   const lock = LockService.getScriptLock();
 
   if (!lock.tryLock(30000)) {
@@ -269,7 +269,7 @@ function initializeSettings_(sheet) {
 /**
  * Semak database tanpa mengubah data.
  */
-function checkDatabase() {
+function checkDatabase_() {
   const props =
     PropertiesService.getScriptProperties();
 
@@ -279,7 +279,7 @@ function checkDatabase() {
 
   if (!spreadsheetId) {
     Logger.log(
-      'Database belum disediakan. Jalankan setupDatabase.'
+      'Database belum disediakan. Jalankan setupDatabase_.'
     );
     return false;
   }
