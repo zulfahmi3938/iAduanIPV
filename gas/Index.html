@@ -351,7 +351,7 @@
           recoveringPending = false;
           if (result && result.found === true &&
               result.requestId === previous &&
-              /^IPV-\\d{4}-\\d{4,}$/.test(result.complaintId)) {
+              /^IPV-\d{4}-\d{4,}$/.test(result.complaintId)) {
             showSavedComplaint(result.complaintId);
             return;
           }
@@ -551,7 +551,7 @@ document.getElementById('images')
               submitting = false;
               if (!result || result.success !== true ||
                   result.requestId !== requestId ||
-                  !/^IPV-\\d{4}-\\d{4,}$/.test(result.complaintId)) {
+                  !/^IPV-\d{4}-\d{4,}$/.test(result.complaintId)) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Hantar Aduan';
                 showError('Respons simpanan belum dapat disahkan. ' +
