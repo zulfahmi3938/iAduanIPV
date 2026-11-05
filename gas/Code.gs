@@ -64,7 +64,7 @@ const COMPLAINT_CONFIG = Object.freeze({
 
 // 6. UTILITI
 
-function normalizeEmail(email) {
+function normalizeEmail_(email) {
   return String(email || '')
     .trim()
     .toLowerCase();
@@ -77,8 +77,8 @@ function normalizeEmail(email) {
  * Fungsi ini hanya menyemak senarai e-mel.
  * Ia BUKAN pengesahan identiti pengguna.
  */
-function isAdminEmail(email) {
-  const normalizedEmail = normalizeEmail(email);
+function isAdminEmail_(email) {
+  const normalizedEmail = normalizeEmail_(email);
 
   return ADMIN_EMAILS.includes(normalizedEmail);
 }
@@ -92,8 +92,8 @@ function isAdminEmail(email) {
  * E-mel mesti disahkan melalui mekanisme
  * authentication yang sah terlebih dahulu.
  */
-function getRoleForVerifiedEmail(email) {
-  return isAdminEmail(email)
+function getRoleForVerifiedEmail_(email) {
+  return isAdminEmail_(email)
     ? USER_ROLES.ADMIN
     : USER_ROLES.STAFF;
 }
@@ -132,7 +132,7 @@ function doGet(e) {
 /**
  * Ujian konfigurasi utama.
  */
-function testSetup() {
+function testSetup_() {
   const result = {
     success: true,
     ...getAppInfo(),
@@ -154,7 +154,7 @@ function testSetup() {
  * Menggunakan e-mel contoh untuk testing.
  * Ini bukan ujian login sebenar.
  */
-function testAdminConfiguration() {
+function testAdminConfiguration_() {
   const tests = [
     {
       email: 'admin@example.invalid',
@@ -168,7 +168,7 @@ function testAdminConfiguration() {
 
   const results = tests.map(function(test) {
     const actual =
-      getRoleForVerifiedEmail(test.email);
+      getRoleForVerifiedEmail_(test.email);
 
     return {
       expected: test.expected,
@@ -196,7 +196,7 @@ function testAdminConfiguration() {
 /**
  * Ujian konfigurasi borang.
  */
-function testComplaintConfiguration() {
+function testComplaintConfiguration_() {
   const result = {
     maxDescriptionLength:
       COMPLAINT_CONFIG.maxDescriptionLength,
