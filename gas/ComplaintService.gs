@@ -335,7 +335,7 @@ if (location.length > 150) {
 /**
  * Ujian membaca dropdown nama.
  */
-function testStaffDropdown() {
+function testStaffDropdown_() {
   const data = getFormOptions();
 
   Logger.log(JSON.stringify({
