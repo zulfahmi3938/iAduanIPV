@@ -527,14 +527,8 @@ document.getElementById('images')
         return;
       }
 
-      let requestId;
-      try {
-        requestId = getOrCreateRequestId();
-      } catch (error) {
-        showError(error.message);
-        return;
-      }
-
+      // Cipta UUID hanya selepas lampiran berjaya dibaca.
+      // Ralat setempat tidak sepatutnya meninggalkan pending request palsu.
       submitting = true;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Menghantar...';
@@ -543,6 +537,7 @@ document.getElementById('images')
       // Baca gambar sebelum menghantar aduan
       prepareImages()
         .then(function(images) {
+          const requestId = getOrCreateRequestId();
 
           const payload = {
             staffId:
@@ -581,7 +576,7 @@ document.getElementById('images')
                 'Aduan belum dapat disahkan. ' +
                 'Semak dengan urus setia sebelum ' +
                 'menghantar semula. ' +
-                (error.message || '')
+                (error && error.message ? error.message : '')
               );
             })
             .submitComplaint(payload);
